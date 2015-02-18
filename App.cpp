@@ -22,8 +22,6 @@ int main(int argc, const char* argv[]) {
 }
 
 
-
-
 App::App(const GApp::Settings& settings) : GApp(settings) {
 	renderDevice->setColorClearValue(Color3(0.2, 0.2, 0.2));
 	renderDevice->setSwapBuffersAutomatically(true);
@@ -43,6 +41,9 @@ void App::onInit() {
 	activeCamera()->setPosition(Vector3(0,100,250));
 	activeCamera()->lookAt(Vector3(0,0,0), Vector3(0,1,0));
 	activeCamera()->setFarPlaneZ(-1000);
+
+	//
+	serve = false;
 }
 
 
@@ -72,7 +73,7 @@ void App::onUserInput(UserInput *uinput) {
 		// toward you. I found that a good initial position for the ball is: (0, 30, -130).  
 		// And, a good initial velocity is (0, 200, 400).  As usual for this program, all 
 		// units are in cm.
-
+		serve = true;
 	}
 }
 
@@ -99,12 +100,16 @@ void App::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D) {
 	rd->clear();
 
-	Box table( Vector3(-76.25, 0, -137), Vector3(76.25, -20, 137) );
+	Box table( Vector3(-76.25, 0, -137), Vector3(76.25, -10, 137) );
+	Box stand( Vector3(-66.25, -11, -117), Vector3(66.25, -65, 117) );
 	Draw::box( table, rd, Color3(0,0.5,0), Color4::clear());
+	Draw::box( stand, rd, Color3(1,1,1), Color4::clear());
 
-
-
-
+	if (serve == true) {
+		Sphere ball( Vector3(0, 30, -130), 10 );
+		Draw::sphere( ball, rd, Color3(0.4,0.4,0.4));
+		serve = false;
+	}
 
 
 	// Draw the paddle using 2 cylinders

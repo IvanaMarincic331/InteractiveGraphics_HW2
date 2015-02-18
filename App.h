@@ -33,6 +33,9 @@ protected:
   
   // This vector stores the paddle's current velocity.
   Vector3 paddleVel;
+  
+
+  bool serve;
 };
 
 #endif
