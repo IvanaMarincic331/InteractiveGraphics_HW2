@@ -99,6 +99,8 @@ void App::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D) {
 	rd->clear();
 
+	Box table( Vector3(-76.25, 0, -137), Vector3(76.25, -20, 137) );
+	Draw::box( table, rd, Color3(0,0.5,0), Color4::clear());
 
 
 
