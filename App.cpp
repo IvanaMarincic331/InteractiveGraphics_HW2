@@ -43,7 +43,13 @@ void App::onInit() {
 	activeCamera()->setFarPlaneZ(-1000);
 
 	//
+    
+    gravity = 981;
+    ballRadius = 2;
 	serve = false;
+    time = 0.0;
+    //initVelocity = Vector3(0,200,400);
+    
 }
 
 
@@ -66,14 +72,16 @@ void App::onUserInput(UserInput *uinput) {
 	paddleVel = 0.1*paddleVel + 0.9*(newPos - lastPaddlePos);
 
 
-
 	// This returns true if the SPACEBAR was pressed
 	if (uinput->keyPressed(GKey(' '))) {
 		// This is where you can "serve" a new ball from the opponent's side of the net 
 		// toward you. I found that a good initial position for the ball is: (0, 30, -130).  
 		// And, a good initial velocity is (0, 200, 400).  As usual for this program, all 
 		// units are in cm.
+        time = 0.0;
 		serve = true;
+        initVelocity = Vector3(0,2,400);
+        ballPos = Vector3(0,30,-130);
 	}
 }
 
@@ -84,7 +92,8 @@ void App::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 	// rdt is the change in time (dt) in seconds since the last call to onSimulation
 	// So, you can slow down the simulation by half if you divide it by 2.
 	rdt *= 0.5;
-
+    //time += rdt;
+    time += rdt;
 	// Here are a few other values that you may find useful..
 	// Radius of the ball = 2cm
 	// Radius of the paddle = 8cm
@@ -95,7 +104,21 @@ void App::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 
 }
 
+void App::detectCollisionTable() {
+    if(ballPos.y <= ballRadius) {
+        initVelocity.y *= (-1);
+    }
+}
 
+void App::detectCollisionPaddle() {
+    if((ballPos.x > (getPaddlePosition().x - 8) && ballPos.x < (getPaddlePosition().x + 8)) &&
+       ballPos.z > (getPaddlePosition().z - ballRadius)) {
+        
+        Vector3 ballVector = Vector3(initVelocity.x*time, initVelocity.y*time, 5*time);
+
+        initVelocity = ballVector - 2*(dot(ballVector, getPaddleNormal())*getPaddleNormal() );
+    }
+}
 
 void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D) {
 	rd->clear();
@@ -106,9 +129,17 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D)
 	Draw::box( stand, rd, Color3(1,1,1), Color4::clear());
 
 	if (serve == true) {
-		Sphere ball( Vector3(0, 30, -130), 10 );
+		Sphere ball( ballPos, ballRadius);
 		Draw::sphere( ball, rd, Color3(0.4,0.4,0.4));
-		serve = false;
+        //cout << ballPos.z;
+		//ballPos = Vector3(0, ballPos.y+initVelocity.y-0.5*gravity*time*time, ballPos.z+initVelocity.z*time);
+        ballPos = Vector3(ballPos.x*initVelocity.x*time, ballPos.y-initVelocity.y*time, ballPos.z+5*time);
+        //cout << ballPos.z;
+        detectCollisionTable();
+        if(ballPos.z > 137) {
+          serve = false;
+        }
+        //
 	}
 
 

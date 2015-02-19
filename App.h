@@ -25,6 +25,9 @@ public:
   Vector3 getPaddlePosition() { return paddleFrame.translation; }
   Vector3 getPaddleNormal() { return Vector3(0,0,-1); }
   Vector3 getPaddleVelocity() { return paddleVel; }
+    
+    virtual void detectCollisionTable();
+    virtual void detectCollisionPaddle();
 
 protected:
 
@@ -33,9 +36,17 @@ protected:
   
   // This vector stores the paddle's current velocity.
   Vector3 paddleVel;
+    
+    Vector3 ballPos;
   
-
+    double ballRadius;
   bool serve;
+    /*Ball*/
+    // initSpeed;
+    //double initAngle;
+    Vector3 initVelocity;
+    double time;
+    double gravity;
 };
 
 #endif
