@@ -9,6 +9,7 @@ Authors: Barbara and Ivana
 #include <G3D/G3DAll.h>
 
 class App : public GApp {
+<<<<<<< HEAD
 public:
     App(const GApp::Settings& settings = GApp::Settings());
 
@@ -26,10 +27,12 @@ public:
     Vector3 getPaddleNormal() { return Vector3(0,0,-1); }
     Vector3 getPaddleVelocity() { return paddleVel; }
     
-    virtual void detectCollisionTable();
-    virtual void detectCollisionPaddle();
 
 protected:
+    
+    // Functions for collision detection.
+    virtual void detectCollisionTable();
+    virtual void detectCollisionPaddle();
 
     // This CoordinateFrame stores position and rotation data for the paddle.
     CoordinateFrame paddleFrame;
@@ -54,13 +57,17 @@ protected:
     double initBallSpeed;
     double initBallToTableAngle;
     
-  
-    //double ballRadius;
     bool serve;
-    /*Ball*/
-    // initSpeed;
-    //double initAngle;
-    //Vector3 initVelocity;
+    
+    
+    Vector3 position;
+    Vector3 previousPosition;
+    Vector3 velocity;
+    Vector3 initialVel;
+    
+    bool tableCollision;
+    bool paddleCollision;
+    double paddleCollisionPos;
     
 };
 
