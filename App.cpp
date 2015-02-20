@@ -154,7 +154,7 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D)
 
         cout << ballPos << "\n";
         previousBallPos = ballPos;
-        ballPos = updateBallPos(time);        
+        ballPos = updateBallPos(time);
         
         if(ballPos.z > 137) {
             serve = false;
