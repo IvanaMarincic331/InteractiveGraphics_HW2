@@ -13,6 +13,10 @@ G3D_START_AT_MAIN();
 const double App::GRAVITY = 981;
 const double App::BALL_RADIUS = 2.0;
 const double App::PADDLE_RADIUS = 8.0;
+const double App::TABLE_FRICTION = 0.45; //https://prezi.com/lycm4jivbrc7/friction
+const double App::PADDLE_FRICTION = 0.6; //https://prezi.com/lycm4jivbrc7/friction
+const double App::RESTITUTION = 0.9; //www.ijee.ie/articles/Vol19-4/IJEE1433.pdf
+const double App::AIR_DRAG = 0.47; //en.wikipedia.org/wiki/Drag_coefficient
 
 int main(int argc, const char* argv[]) {
 	(void)argc; (void)argv;
@@ -86,15 +90,30 @@ void App::onUserInput(UserInput *uinput) {
         time = 0.0;
 		serve = true;
 
-		position = Vector3(0, 0, 0);
+		//position = Vector3(0, 0, 0);
 		tableCollision = false;
 		paddleCollision = false;
 	}
 }
 
 Vector3 App::updateBallPos(double time) {
-    detectCollisionTable();
-    return Vector3(0, initBallVelocity.y*time - GRAVITY*time*time*0.5 + 30, initBallVelocity.z*time - 130);
+    Vector3 newBallPosition(initBallVelocity.x*time, (initBallVelocity.y*time - GRAVITY*time*time*0.5 + 30)*AIR_DRAG, initBallVelocity.z*time - 130);
+    detectCollisionPaddle(newBallPosition);
+    detectCollisionTable(newBallPosition);
+    if(tableCollision == true) {
+        cout << "Table hit!\n";
+        //newBallPosition.y *= -1;
+        initBallVelocity.y *= -RESTITUTION;
+        initBallVelocity.z *= TABLE_FRICTION;
+        newBallPosition.y *= RESTITUTION;
+        newBallPosition.z *= TABLE_FRICTION;
+    }
+    if(paddleCollision) {
+        newBallPosition.z = -newBallPosition.z + 2 * paddleCollisionPos;
+        initBallVelocity.z *= PADDLE_FRICTION;
+        Vector3 newBallPosition(initBallVelocity.x*time, (initBallVelocity.y*time - GRAVITY*time*time*0.5 + 30)*AIR_DRAG, initBallVelocity.z*time - 130);
+    }
+    return newBallPosition;
 }
 
 
@@ -118,9 +137,9 @@ void App::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 	// Acceleration due to gravity = 981cm/s^2 in the negative Y direction
 	// See the diagram in the assignment handout for the dimensions of the ping pong table
 
-    position = ballPos(time);
+    //position = ballPos(time);
 }
-
+/*
 Vector3 App::ballPos(double time) {
 	velocity = Vector3( time * initialVel.x, 
 						initialVel.y * time - GRAVITY * time * time * 0.5 + 30,
@@ -131,20 +150,37 @@ Vector3 App::ballPos(double time) {
 	}
     return velocity;
 }
-
-void App::detectCollisionTable() {
-    if(ballPos.y <= BALL_RADIUS) {
-        cout << "Table hit!\n";
-        ballVelocity.y *= (-1);
-        initBallVelocity.y *= (-1);
+*/
+void App::detectCollisionTable(Vector3 b_position) {
+    if(b_position.y <= BALL_RADIUS) {
         tableCollision = !tableCollision;
+    }
 }
 
-void App::detectCollisionPaddle() {
-    if( position.x > (getPaddlePosition().x - 8) && position.x < (getPaddlePosition().x + 8) &&
-        position.z > (getPaddlePosition().z - 8) && position.z < (getPaddlePosition().z + 8) ) {
-			paddleCollision = !paddleCollision;
-			paddleCollisionPos = position.z;
+void App::detectCollisionPaddle(Vector3 b_position) {
+    if( b_position.x > (getPaddlePosition().x - 8) && b_position.x < (getPaddlePosition().x + 8) &&
+        b_position.z > (getPaddlePosition().z - 8) && b_position.z < (getPaddlePosition().z + 8) ) {
+        cout << "Paddle hit!\n";
+        paddleCollision = !paddleCollision;
+        paddleCollisionPos = ballPos.z;
+    }
+}
+
+void App::game(RenderDevice* rd) {
+    if (serve) {
+		Sphere ball( ballPos, BALL_RADIUS);
+		Draw::sphere( ball, rd, Color3(0.4,0.4,0.4));
+        
+        cout << ballPos << ", " << initBallVelocity << "\n";
+        previousBallPos = ballPos;
+        ballPos = updateBallPos(time);
+        
+        if(ballPos.z > 160 || ballPos.y > 400) {
+            serve = false;
+            time = 0.0;
+            ballPos = Vector3(0,30,-130);
+            initBallVelocity = Vector3(0,200,400);
+        }
     }
 }
 
@@ -197,19 +233,8 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D)
 	LineSegment bottom_right = LineSegment::fromTwoPoints(Point3(76.25, 0, 0), Point3(91.5, 0, 0));
 	Draw::lineSegment(bottom_right, rd, Color3(1, 1, 1));
 
-	
-    if (serve == true) {
-		Sphere ball( ballPos, BALL_RADIUS);
-		Draw::sphere( ball, rd, Color3(0.4,0.4,0.4));
-        
-        cout << ballPos << "\n";
-        previousBallPos = ballPos;
-        ballPos = updateBallPos(time);
-        
-        if(ballPos.z > 137) {
-            serve = false;
-            time = 0.0;
-            ballPos = Vector3(0,30,-130);
+	game(rd);
+
     /*
     if ( serve == true ) {
 	//SlowMesh mesh(PrimitiveType::TRIANGLE_FAN);
