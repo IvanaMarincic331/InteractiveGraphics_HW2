@@ -212,6 +212,19 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D)
             ballPos = Vector3(0,30,-130);
     /*
     if ( serve == true ) {
+	//SlowMesh mesh(PrimitiveType::TRIANGLE_FAN);
+	//mesh.setColor(Color3::blue());
+	//mesh.makeVertex(Vector2(400,400));
+	//mesh.makeVertex(Vector2(800,400));
+	//mesh.makeVertex(Vector2(800,800));
+	//mesh.makeVertex(Vector2(400,800));
+	//mesh.makeVertex(Vector2(400,400));
+	//rd->push2D();
+	//mesh.render(rd);
+	//rd->pop2D();
+
+
+	if ( serve == true ) {
 		Sphere ball( position, ballRadius );
 		Draw::sphere( ball, rd, Color3( 0.4, 0.4, 0.4 ));
         detectCollisionPaddle();
