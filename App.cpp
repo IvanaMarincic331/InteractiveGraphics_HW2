@@ -9,6 +9,8 @@ using namespace std;
 // Tells C++ to invoke command-line main() function even on OS X and Win32.
 G3D_START_AT_MAIN();
 
+const double App::GRAVITY = 981;
+
 int main(int argc, const char* argv[]) {
 	(void)argc; (void)argv;
 	GApp::Settings settings(argc, argv);
@@ -43,13 +45,9 @@ void App::onInit() {
 	activeCamera()->setFarPlaneZ(-1000);
 
 	//
-    
-    gravity = 981;
     ballRadius = 2;
 	serve = false;
-    time = 0.0;
-    //initVelocity = Vector3(0,200,400);
-    
+    initialVel = Vector3(0, 200, 400);
 }
 
 
@@ -80,8 +78,9 @@ void App::onUserInput(UserInput *uinput) {
 		// units are in cm.
         time = 0.0;
 		serve = true;
-        initVelocity = Vector3(0,2,400);
-        ballPos = Vector3(0,30,-130);
+		position = Vector3(0, 0, 0);
+		tableCollision = false;
+		paddleCollision = false;
 	}
 }
 
@@ -91,7 +90,7 @@ void App::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 
 	// rdt is the change in time (dt) in seconds since the last call to onSimulation
 	// So, you can slow down the simulation by half if you divide it by 2.
-	rdt *= 0.5;
+	rdt *= 0.3;
     //time += rdt;
     time += rdt;
 	// Here are a few other values that you may find useful..
@@ -100,23 +99,29 @@ void App::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 	// Acceleration due to gravity = 981cm/s^2 in the negative Y direction
 	// See the diagram in the assignment handout for the dimensions of the ping pong table
 
+    position = ballPos(time);
+}
 
-
+Vector3 App::ballPos(double time) {
+	velocity = Vector3( time * initialVel.x, 
+						initialVel.y * time - GRAVITY * time * time * 0.5 + 30,
+						time * initialVel.z - 130 ); 
+	if (tableCollision == true) velocity.y *= -1;
+	if (paddleCollision == true) velocity.z = -velocity.z + 2 * paddleCollisionPos; //velocity = velocity - 2 * (dot( velocity, getPaddleNormal() ) * getPaddleNormal() );
+    return velocity;
 }
 
 void App::detectCollisionTable() {
-    if(ballPos.y <= ballRadius) {
-        initVelocity.y *= (-1);
+    if( position.y <= ballRadius ) {
+		tableCollision = !tableCollision;
     }
 }
 
 void App::detectCollisionPaddle() {
-    if((ballPos.x > (getPaddlePosition().x - 8) && ballPos.x < (getPaddlePosition().x + 8)) &&
-       ballPos.z > (getPaddlePosition().z - ballRadius)) {
-        
-        Vector3 ballVector = Vector3(initVelocity.x*time, initVelocity.y*time, 5*time);
-
-        initVelocity = ballVector - 2*(dot(ballVector, getPaddleNormal())*getPaddleNormal() );
+    if( position.x > (getPaddlePosition().x - 8) && position.x < (getPaddlePosition().x + 8) &&
+        position.z > (getPaddlePosition().z - 8) && position.z < (getPaddlePosition().z + 8) ) {
+			paddleCollision = !paddleCollision;
+			paddleCollisionPos = position.z;
     }
 }
 
@@ -128,18 +133,14 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D)
 	Draw::box( table, rd, Color3(0,0.5,0), Color4::clear());
 	Draw::box( stand, rd, Color3(1,1,1), Color4::clear());
 
-	if (serve == true) {
-		Sphere ball( ballPos, ballRadius);
-		Draw::sphere( ball, rd, Color3(0.4,0.4,0.4));
-        //cout << ballPos.z;
-		//ballPos = Vector3(0, ballPos.y+initVelocity.y-0.5*gravity*time*time, ballPos.z+initVelocity.z*time);
-        ballPos = Vector3(ballPos.x*initVelocity.x*time, ballPos.y-initVelocity.y*time, ballPos.z+5*time);
-        //cout << ballPos.z;
-        detectCollisionTable();
-        if(ballPos.z > 137) {
+	if ( serve == true ) {
+		Sphere ball( position, ballRadius );
+		Draw::sphere( ball, rd, Color3( 0.4, 0.4, 0.4 ));
+        detectCollisionPaddle();
+		detectCollisionTable();
+        if( position.z > 160 ) {
           serve = false;
         }
-        //
 	}
 
 
