@@ -25,7 +25,7 @@ int main(int argc, const char* argv[]) {
 
 
 App::App(const GApp::Settings& settings) : GApp(settings) {
-	renderDevice->setColorClearValue(Color3(0.2, 0.2, 0.2));
+	renderDevice->setColorClearValue(Color3(0.096863, 0.096863, 0.096863));
 	renderDevice->setSwapBuffersAutomatically(true);
 }
 
@@ -107,7 +107,9 @@ Vector3 App::ballPos(double time) {
 						initialVel.y * time - GRAVITY * time * time * 0.5 + 30,
 						time * initialVel.z - 130 ); 
 	if (tableCollision == true) velocity.y *= -1;
-	if (paddleCollision == true) velocity.z = -velocity.z + 2 * paddleCollisionPos; //velocity = velocity - 2 * (dot( velocity, getPaddleNormal() ) * getPaddleNormal() );
+	if (paddleCollision == true) {
+		velocity.z = -velocity.z + 2 * paddleCollisionPos; //velocity = velocity - 2 * (dot( velocity, getPaddleNormal() ) * getPaddleNormal() );
+	}
     return velocity;
 }
 
@@ -128,10 +130,51 @@ void App::detectCollisionPaddle() {
 void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D) {
 	rd->clear();
 
-	Box table( Vector3(-76.25, 0, -137), Vector3(76.25, -10, 137) );
-	Box stand( Vector3(-66.25, -11, -117), Vector3(66.25, -65, 117) );
-	Draw::box( table, rd, Color3(0,0.5,0), Color4::clear());
-	Draw::box( stand, rd, Color3(1,1,1), Color4::clear());
+	Box wall( Vector3(-900, 0, -500), Vector3(900, 300, -500) );
+	Box table( Vector3(-76.25, 0, -137), Vector3(76.25, -3, 137) );
+	Box stand( Vector3(-66.25, -4, -117), Vector3(66.25, -60, 117) );
+	Draw::box( wall, rd, Color3(0.317647, 0.317647, 0.317647), Color4::clear());
+	Draw::box( table, rd, Color3(0, 0.3, 0.1), Color4::clear());
+	Draw::box( stand, rd, Color3(0.762745, 0.762745, 0.762745), Color4::clear());
+
+	LineSegment front_down = LineSegment::fromTwoPoints(Point3(-76.25, -3, 137), Point3(76.25, -3, 137));
+	LineSegment front_up = LineSegment::fromTwoPoints(Point3(-76.25, 0, 137), Point3(76.25, 0, 137));
+	LineSegment front_left = LineSegment::fromTwoPoints(Point3(-76.25, -3, 137), Point3(-76.25, 0, 137));
+	LineSegment front_right = LineSegment::fromTwoPoints(Point3(76.25, -3, 137), Point3(76.25, 0, 137));
+	Draw::lineSegment(front_down, rd, Color3(1, 1, 1));
+	Draw::lineSegment(front_up, rd, Color3(1, 1, 1));
+	Draw::lineSegment(front_left, rd, Color3(1, 1, 1));
+	Draw::lineSegment(front_right, rd, Color3(1, 1, 1));
+
+	LineSegment top_left = LineSegment::fromTwoPoints(Point3(-76.25, 0, 137), Point3(-76.25, 0, -137));
+	LineSegment top_middle = LineSegment::fromTwoPoints(Point3(0, 0, 137), Point3(0, 0, -137));
+	LineSegment top_right = LineSegment::fromTwoPoints(Point3(76.25, 0, 137), Point3(76.25, 0, -137));
+	Draw::lineSegment(top_left, rd, Color3(1, 1, 1));
+	Draw::lineSegment(top_middle, rd, Color3(1, 1, 1));
+	Draw::lineSegment(top_right, rd, Color3(1, 1, 1));
+
+	LineSegment back_top = LineSegment::fromTwoPoints(Point3(-76.25, 0, -137), Point3(76.25, 0, -137));
+	Draw::lineSegment(back_top, rd, Color3(1, 1, 1));
+
+	for( double x = -91.5; x <= 91.5; x += 2 ) {
+		LineSegment horiz = LineSegment::fromTwoPoints(Point3(x, 0, 0), Point3(x, 15.25, 0));
+		Draw::lineSegment(horiz, rd, Color3(0, 0, 0));
+	}
+	LineSegment left = LineSegment::fromTwoPoints(Point3(-91.5, 0, 0), Point3(-91.5, 15.25, 0));
+	Draw::lineSegment(left, rd, Color3(1, 1, 1));
+	LineSegment right = LineSegment::fromTwoPoints(Point3(91.5, 0, 0), Point3(91.5, 15.25, 0));
+	Draw::lineSegment(right, rd, Color3(1, 1, 1));
+
+	for( double y = 0; y <= 15.25; y += 2 ) {
+		LineSegment vert = LineSegment::fromTwoPoints(Point3(-91.5, y, 0), Point3(91.25, y, 0));
+		Draw::lineSegment(vert, rd, Color3(0, 0, 0));
+	}
+	LineSegment top = LineSegment::fromTwoPoints(Point3(-91.5, 15.25, 0), Point3(91.5, 15.25, 0));
+	Draw::lineSegment(top, rd, Color3(1, 1, 1));
+	LineSegment bottom_left = LineSegment::fromTwoPoints(Point3(-91.5, 0, 0), Point3(-76.25, 0, 0));
+	Draw::lineSegment(bottom_left, rd, Color3(1, 1, 1));
+	LineSegment bottom_right = LineSegment::fromTwoPoints(Point3(76.25, 0, 0), Point3(91.5, 0, 0));
+	Draw::lineSegment(bottom_right, rd, Color3(1, 1, 1));
 
 	if ( serve == true ) {
 		Sphere ball( position, ballRadius );
