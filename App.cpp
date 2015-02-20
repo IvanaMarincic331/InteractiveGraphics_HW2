@@ -50,15 +50,12 @@ void App::onInit() {
 	activeCamera()->setPosition(Vector3(0,100,250));
 	activeCamera()->lookAt(Vector3(0,0,0), Vector3(0,1,0));
 	activeCamera()->setFarPlaneZ(-1000);
-
-    time = 0.0;
-	serve = false;
     
     initBallSpeed = 447.12; //MATH!
     initBallToTableAngle = toRadians(27.57); //MATH!
     
-    initBallVelocity = Vector3(0,200,400);
-    ballPos = Vector3(0,30,-130);
+    resetBall();
+    resetCollisions();
 }
 
 
@@ -83,107 +80,79 @@ void App::onUserInput(UserInput *uinput) {
 
 	// This returns true if the SPACEBAR was pressed
 	if (uinput->keyPressed(GKey(' '))) {
-		// This is where you can "serve" a new ball from the opponent's side of the net 
-		// toward you. I found that a good initial position for the ball is: (0, 30, -130).  
-		// And, a good initial velocity is (0, 200, 400).  As usual for this program, all 
-		// units are in cm.
-        time = 0.0;
 		serve = true;
-
-		//position = Vector3(0, 0, 0);
-		tableCollision = false;
-		paddleCollision = false;
 	}
 }
 
 Vector3 App::updateBallPos(double time) {
+	detectCollisionPaddle();
+    detectCollisionTable();
     Vector3 newBallPosition(initBallVelocity.x*time, initBallVelocity.y*AIR_DRAG*time - GRAVITY*time*time*0.5 + 30, initBallVelocity.z*AIR_DRAG*time - 130);
-    detectCollisionPaddle(newBallPosition);
-    detectCollisionTable(newBallPosition);
     if(tableCollision == true) {
-        cout << "Table hit!\n";
         newBallPosition.y *= -1;
-        //ballPos.y = BALL_RADIUS;
-        //initBallVelocity.y = -(RESTITUTION*initBallVelocity.y);
-        //initBallVelocity.z *= TABLE_FRICTION;
     }
     if(paddleCollision) {
         newBallPosition.z = -newBallPosition.z + 2 * paddleCollisionPos;
-        initBallVelocity.z *= PADDLE_FRICTION;
-        Vector3 newBallPosition(initBallVelocity.x*time, (initBallVelocity.y*time - GRAVITY*time*time*0.5 + 30)*AIR_DRAG, initBallVelocity.z*time - 130);
     }
 
     return newBallPosition;
 }
 
-
-
 void App::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 
-	// rdt is the change in time (dt) in seconds since the last call to onSimulation
-	// So, you can slow down the simulation by half if you divide it by 2.
 	rdt *= 0.1; //slowed it down
-    //time += rdt;
     if(serve) {
-        time += rdt;
+        time += rdt; //start timing only while ball is in air
         ballVelocity = (ballPos - previousBallPos) / rdt;
     }
-    else {
-        time = 0.0;
-    }
-	// Here are a few other values that you may find useful..
-	// Radius of the ball = 2cm
-	// Radius of the paddle = 8cm
-	// Acceleration due to gravity = 981cm/s^2 in the negative Y direction
-	// See the diagram in the assignment handout for the dimensions of the ping pong table
-
-    //position = ballPos(time);
-}
-/*
-Vector3 App::ballPos(double time) {
-	velocity = Vector3( time * initialVel.x, 
-						initialVel.y * time - GRAVITY * time * time * 0.5 + 30,
-						time * initialVel.z - 130 ); 
-	if (tableCollision == true) velocity.y *= -1;
-	if (paddleCollision == true) {
-		velocity.z = -velocity.z + 2 * paddleCollisionPos; //velocity = velocity - 2 * (dot( velocity, getPaddleNormal() ) * getPaddleNormal() );
-	}
-    return velocity;
-}
-*/
-void App::detectCollisionTable(Vector3 b_position) {
-    cout << "Caled collisionTable with position" << b_position << "\n";
-    if(b_position.y <= BALL_RADIUS) {
-        tableCollision = true;
-    }
-    else tableCollision = false;
 }
 
-void App::detectCollisionPaddle(Vector3 b_position) {
-    if( b_position.x > (getPaddlePosition().x - 8) && b_position.x < (getPaddlePosition().x + 8) &&
-        b_position.z > (getPaddlePosition().z - 8) && b_position.z < (getPaddlePosition().z + 8) ) {
-        cout << "Paddle hit!\n";
+void App::detectCollisionTable() {
+    if(ballPos.y <= BALL_RADIUS) {
+        tableCollision = !tableCollision;
+        if(ballPos.y >= -BALL_RADIUS) { //ball is on the table
+        	initBallVelocity.y *= RESTITUTION; //reduce velocity due to bounciness friction
+        	initBallVelocity.z *= TABLE_FRICTION; //reduce velocity due to table friction
+        }
+    }
+}
+
+void App::detectCollisionPaddle() {
+    if( ballPos.x > (getPaddlePosition().x - 8) && ballPos.x < (getPaddlePosition().x + 8) &&
+        ballPos.z > (getPaddlePosition().z - 8) && ballPos.z < (getPaddlePosition().z + 8) ) {
         paddleCollision = !paddleCollision;
         paddleCollisionPos = ballPos.z;
+        initBallVelocity.z *= PADDLE_FRICTION; //reduce velocity due to friction from paddle
+        /*Here we might assign some "swing force" to the paddle, to increase velocity each time*/
     }
 }
 
+/*this is called in OnGraphics3D*/
 void App::game(RenderDevice* rd) {
+
     if (serve) {
 		Sphere ball( ballPos, BALL_RADIUS);
 		Draw::sphere( ball, rd, Color3(0.4,0.4,0.4));
         
-        cout << ballPos << ", " << initBallVelocity << "\n";
-        previousBallPos = ballPos;
+        previousBallPos = ballPos; //will maybe need later
         ballPos = updateBallPos(time);
         
-        if(ballPos.z > 160 || ballPos.y > 400) {
-            serve = false;
-            time = 0.0;
-            ballPos = Vector3(0,30,-130);
-            initBallVelocity = Vector3(0,200,400);
+        if(ballPos.z > 160 || ballPos.y > 360) {
+            resetBall();
         }
     }
+}
+
+void App::resetBall() {
+	serve = false;
+	time = 0.0;
+	ballPos = Vector3(0,30,-130);
+    initBallVelocity = Vector3(0,200,400);
+}
+
+void App::resetCollisions() {
+	tableCollision = false;
+	paddleCollision = false;
 }
 
 void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D) {
