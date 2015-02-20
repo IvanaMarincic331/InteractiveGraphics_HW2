@@ -176,6 +176,18 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D)
 	LineSegment bottom_right = LineSegment::fromTwoPoints(Point3(76.25, 0, 0), Point3(91.5, 0, 0));
 	Draw::lineSegment(bottom_right, rd, Color3(1, 1, 1));
 
+	//SlowMesh mesh(PrimitiveType::TRIANGLE_FAN);
+	//mesh.setColor(Color3::blue());
+	//mesh.makeVertex(Vector2(400,400));
+	//mesh.makeVertex(Vector2(800,400));
+	//mesh.makeVertex(Vector2(800,800));
+	//mesh.makeVertex(Vector2(400,800));
+	//mesh.makeVertex(Vector2(400,400));
+	//rd->push2D();
+	//mesh.render(rd);
+	//rd->pop2D();
+
+
 	if ( serve == true ) {
 		Sphere ball( position, ballRadius );
 		Draw::sphere( ball, rd, Color3( 0.4, 0.4, 0.4 ));
