@@ -97,22 +97,22 @@ void App::onUserInput(UserInput *uinput) {
 }
 
 Vector3 App::updateBallPos(double time) {
-    Vector3 newBallPosition(initBallVelocity.x*time, (initBallVelocity.y*time - GRAVITY*time*time*0.5 + 30)*AIR_DRAG, initBallVelocity.z*time - 130);
+    Vector3 newBallPosition(initBallVelocity.x*time, initBallVelocity.y*AIR_DRAG*time - GRAVITY*time*time*0.5 + 30, initBallVelocity.z*AIR_DRAG*time - 130);
     detectCollisionPaddle(newBallPosition);
     detectCollisionTable(newBallPosition);
     if(tableCollision == true) {
         cout << "Table hit!\n";
-        //newBallPosition.y *= -1;
-        initBallVelocity.y *= -RESTITUTION;
-        initBallVelocity.z *= TABLE_FRICTION;
-        newBallPosition.y *= RESTITUTION;
-        newBallPosition.z *= TABLE_FRICTION;
+        newBallPosition.y *= -1;
+        //ballPos.y = BALL_RADIUS;
+        //initBallVelocity.y = -(RESTITUTION*initBallVelocity.y);
+        //initBallVelocity.z *= TABLE_FRICTION;
     }
     if(paddleCollision) {
         newBallPosition.z = -newBallPosition.z + 2 * paddleCollisionPos;
         initBallVelocity.z *= PADDLE_FRICTION;
         Vector3 newBallPosition(initBallVelocity.x*time, (initBallVelocity.y*time - GRAVITY*time*time*0.5 + 30)*AIR_DRAG, initBallVelocity.z*time - 130);
     }
+
     return newBallPosition;
 }
 
@@ -152,9 +152,11 @@ Vector3 App::ballPos(double time) {
 }
 */
 void App::detectCollisionTable(Vector3 b_position) {
+    cout << "Caled collisionTable with position" << b_position << "\n";
     if(b_position.y <= BALL_RADIUS) {
-        tableCollision = !tableCollision;
+        tableCollision = true;
     }
+    else tableCollision = false;
 }
 
 void App::detectCollisionPaddle(Vector3 b_position) {
