@@ -88,18 +88,16 @@ Vector3 App::updateBallPos(double time) {
 	detectCollisionPaddle();
     detectCollisionTable();
     Vector3 newBallPosition(initBallVelocity.x*time, initBallVelocity.y*AIR_DRAG*time - GRAVITY*time*time*0.5 + 30, initBallVelocity.z*AIR_DRAG*time - 130);
-    if(tableCollision == true) {
+    if(tableCollision) {
         newBallPosition.y *= -1;
     }
     if(paddleCollision) {
         newBallPosition.z = -newBallPosition.z + 2 * paddleCollisionPos;
     }
-
     return newBallPosition;
 }
 
 void App::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
-
 	rdt *= 0.1; //slowed it down
     if(serve) {
         time += rdt; //start timing only while ball is in air
@@ -129,7 +127,6 @@ void App::detectCollisionPaddle() {
 
 /*this is called in OnGraphics3D*/
 void App::game(RenderDevice* rd) {
-
     if (serve) {
 		Sphere ball( ballPos, BALL_RADIUS);
 		Draw::sphere( ball, rd, Color3(0.4,0.4,0.4));

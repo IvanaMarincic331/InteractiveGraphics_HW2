@@ -30,8 +30,8 @@ public:
 protected:
     
     // Functions for collision detection.
-    virtual void detectCollisionTable(Vector3 b_position);
-    virtual void detectCollisionPaddle(Vector3 b_position);
+    virtual void detectCollisionTable();
+    virtual void detectCollisionPaddle();
     virtual void game(RenderDevice* rd);
     virtual void resetBall();
     virtual void resetCollisions();
