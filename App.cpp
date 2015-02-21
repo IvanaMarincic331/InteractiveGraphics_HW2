@@ -54,10 +54,13 @@ void App::onInit() {
     initBallSpeed = 447.12; //MATH!
     initBallToTableAngle = toRadians(27.57); //MATH!
 
-    resetCollisions();
+    //resetCollisions();
 
+	x_pos = 0;
 	y_pos = 30;
 	z_pos = -130;
+	table_col = Color3(0, 0.3, 0.1);
+	serve = false;
 }
 
 
@@ -73,7 +76,7 @@ void App::onUserInput(UserInput *uinput) {
 	Matrix3 rotZ = Matrix3::fromAxisAngle(Vector3(0,0,1), aSin(-xneg1to1));    
 	Vector3 lastPaddlePos = paddleFrame.translation;
 	paddleFrame = CoordinateFrame(rotZ, Vector3(xneg1to1 * 100.0, 20.0, G3D::max(y0to1 * 137.0 + 20.0, 0.0)));
-	Vector3 newPos = paddleFrame.translation;
+	newPos = paddleFrame.translation;
 
 	// This is a weighted average.  Update the velocity to be 10% the velocity calculated 
 	// at the previous frame and 90% the velocity calculated at this frame.
@@ -87,33 +90,33 @@ void App::onUserInput(UserInput *uinput) {
 }
 
 Vector3 App::updateBallPos(double time) {
-    Vector3 newBallPosition(initBallVelocity.x*time, initBallVelocity.y*AIR_DRAG*time - GRAVITY*time*time*0.5 + y_pos, initBallVelocity.z*AIR_DRAG*time + z_pos);
-  //  if(tableCollision) {
-		//initBallVelocity = Vector3(0, 200, 400);
-		//newBallPosition = Vector3(initBallVelocity.x*(time-timeCollision), 
-		//	initBallVelocity.y*AIR_DRAG*(time-timeCollision) - GRAVITY*((time-timeCollision)*(time-timeCollision))*0.5 + tableCollisionPos.y, 
-		//	initBallVelocity.z*AIR_DRAG*(time-timeCollision) - tableCollisionPos.z);
-  //      //newBallPosition.y *= -1;
-  //  }
-    if(paddleCollision) {
-        newBallPosition.z = -newBallPosition.z + 2 * paddleCollisionPos;
-    }
+	//if (ballPos.y == 30) {
+    Vector3 newBallPosition(initBallVelocity.x*time + x_pos, 
+							initBallVelocity.y*AIR_DRAG*time - GRAVITY*time*time*0.5 + y_pos, 
+							initBallVelocity.z*AIR_DRAG*time + z_pos);
 	detectCollisionPaddle();
     detectCollisionTable();
+	//return newBallPosition;
+	//}
     return newBallPosition;
 }
 
 void App::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
+	GApp::onSimulation(rdt, sdt, idt);
 	rdt *= 0.1; //slowed it down
     time += rdt; //start timing only while ball is in air
-    ballVelocity = (ballPos - previousBallPos) / rdt;
+    //ballVelocity = (ballPos - previousBallPos) / rdt;
 }
 
 void App::detectCollisionTable() {
-    if(ballPos.y <= 0) {
+	if (ballPos.y <= BALL_RADIUS*2) {
+		//Sleep(1000);
 		time = 0;
-		y_pos = ballPos.y;
+		x_pos = ballPos.x;
+		y_pos = BALL_RADIUS * 3;
 		z_pos = ballPos.z;
+		//initBallVelocity.y *= 1.5;
+		//table_col = Color3(0.3, 0, 0.3);
         //tableCollision = true;
 		//tableCollisionPos = ballPos;
 		// tableCollisionPos.y += 1;
@@ -121,15 +124,26 @@ void App::detectCollisionTable() {
         //	initBallVelocity.y *= RESTITUTION; //reduce velocity due to bounciness friction
         //	initBallVelocity.z *= TABLE_FRICTION; //reduce velocity due to table friction
         //}
-    }
-
+	}
 }
 
 void App::detectCollisionPaddle() {
-    if( ballPos.x > (getPaddlePosition().x - 8) && ballPos.x < (getPaddlePosition().x + 8) &&
-        ballPos.z > (getPaddlePosition().z - 8) && ballPos.z < (getPaddlePosition().z + 8) ) {
-        paddleCollision = !paddleCollision;
-        paddleCollisionPos = ballPos.z;
+	Vector3 paddlePos = getPaddlePosition();
+	//Vector3 paddlePos = newPos;
+	//if ( paddlePos.z < 100) {
+	//	table_col = Color3(0.3, 0, 0.3);
+	//} else {
+	//	table_col = Color3(0, 0.3, 0.1);
+	//}
+	
+	if( (ballPos.x > (paddlePos.x - PADDLE_RADIUS)) && 
+		(ballPos.x < (paddlePos.x + PADDLE_RADIUS)) &&
+		(ballPos.z > (paddlePos.z - BALL_RADIUS - 0.5)) && 
+		(ballPos.z < (paddlePos.z + BALL_RADIUS - 0.5)) ) {
+        //paddleCollision = !paddleCollision;
+        //paddleCollisionPos = ballPos.z;
+		//table_col = Color3(0.3, 0, 0.3);
+		initBallVelocity.z *= -1;
         //initBallVelocity.z *= PADDLE_FRICTION; //reduce velocity due to friction from paddle
         /*Here we might assign some "swing force" to the paddle, to increase velocity each time*/
     }
@@ -137,15 +151,12 @@ void App::detectCollisionPaddle() {
 
 /*this is called in OnGraphics3D*/
 void App::game(RenderDevice* rd) {
+	ballPos = updateBallPos(time);
 	Sphere ball( ballPos, BALL_RADIUS);
 	Draw::sphere( ball, rd, Color3(0.4,0.4,0.4));
         
     previousBallPos = ballPos; //will maybe need later
-    ballPos = updateBallPos(time);
-        
-    if(ballPos.z > 160 || ballPos.y > 360) {
-        //resetBall();
-    }
+    
 }
 
 void App::resetBall() {
@@ -153,6 +164,10 @@ void App::resetBall() {
 	ballPos = Vector3(0,30,-130);
     initBallVelocity = Vector3(0,200,400);
 	resetCollisions();
+	serve = true;
+	x_pos = 0;
+	y_pos = 30;
+	z_pos = -130;
 }
 
 void App::resetCollisions() {
@@ -161,13 +176,14 @@ void App::resetCollisions() {
 }
 
 void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D) {
+	cout << "hello" << endl;
 	rd->clear();
 
 	Box wall( Vector3(-900, 0, -500), Vector3(900, 300, -500) );
 	Box table( Vector3(-76.25, 0, -137), Vector3(76.25, -3, 137) );
 	Box stand( Vector3(-66.25, -4, -117), Vector3(66.25, -60, 117) );
 	Draw::box( wall, rd, Color3(0.317647, 0.317647, 0.317647), Color4::clear());
-	Draw::box( table, rd, Color3(0, 0.3, 0.1), Color4::clear());
+	Draw::box( table, rd, table_col, Color4::clear());
 	Draw::box( stand, rd, Color3(0.762745, 0.762745, 0.762745), Color4::clear());
 
 	LineSegment front_down = LineSegment::fromTwoPoints(Point3(-76.25, -3, 137), Point3(76.25, -3, 137));
@@ -209,7 +225,9 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D)
 	LineSegment bottom_right = LineSegment::fromTwoPoints(Point3(76.25, 0, 0), Point3(91.5, 0, 0));
 	Draw::lineSegment(bottom_right, rd, Color3(1, 1, 1));
 
-	game(rd);
+	if (serve) {
+		game(rd);
+	}
 
     /*
     if ( serve == true ) {

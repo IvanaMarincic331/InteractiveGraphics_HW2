@@ -74,8 +74,12 @@ protected:
 	Vector3 tableCollisionPos;
 	double timeCollision;
 
+	double x_pos;
 	double y_pos;
 	double z_pos;
+	Color3 table_col;
+
+	Vector3 newPos;
     
 };
 
