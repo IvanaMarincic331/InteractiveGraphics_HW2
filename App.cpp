@@ -16,7 +16,7 @@ const double App::PADDLE_RADIUS = 8.0;
 const double App::TABLE_FRICTION = 0.45; //https://prezi.com/lycm4jivbrc7/friction
 const double App::PADDLE_FRICTION = 0.6; //https://prezi.com/lycm4jivbrc7/friction
 const double App::RESTITUTION = 0.9; //www.ijee.ie/articles/Vol19-4/IJEE1433.pdf
-const double App::AIR_DRAG = 0.47; //en.wikipedia.org/wiki/Drag_coefficient
+const double App::AIR_DRAG = 1; //en.wikipedia.org/wiki/Drag_coefficient
 
 int main(int argc, const char* argv[]) {
 	(void)argc; (void)argv;
@@ -53,9 +53,11 @@ void App::onInit() {
     
     initBallSpeed = 447.12; //MATH!
     initBallToTableAngle = toRadians(27.57); //MATH!
-    
-    resetBall();
+
     resetCollisions();
+
+	y_pos = 30;
+	z_pos = -130;
 }
 
 
@@ -80,39 +82,47 @@ void App::onUserInput(UserInput *uinput) {
 
 	// This returns true if the SPACEBAR was pressed
 	if (uinput->keyPressed(GKey(' '))) {
-		serve = true;
+		resetBall();
 	}
 }
 
 Vector3 App::updateBallPos(double time) {
-	detectCollisionPaddle();
-    detectCollisionTable();
-    Vector3 newBallPosition(initBallVelocity.x*time, initBallVelocity.y*AIR_DRAG*time - GRAVITY*time*time*0.5 + 30, initBallVelocity.z*AIR_DRAG*time - 130);
-    if(tableCollision) {
-        newBallPosition.y *= -1;
-    }
+    Vector3 newBallPosition(initBallVelocity.x*time, initBallVelocity.y*AIR_DRAG*time - GRAVITY*time*time*0.5 + y_pos, initBallVelocity.z*AIR_DRAG*time + z_pos);
+  //  if(tableCollision) {
+		//initBallVelocity = Vector3(0, 200, 400);
+		//newBallPosition = Vector3(initBallVelocity.x*(time-timeCollision), 
+		//	initBallVelocity.y*AIR_DRAG*(time-timeCollision) - GRAVITY*((time-timeCollision)*(time-timeCollision))*0.5 + tableCollisionPos.y, 
+		//	initBallVelocity.z*AIR_DRAG*(time-timeCollision) - tableCollisionPos.z);
+  //      //newBallPosition.y *= -1;
+  //  }
     if(paddleCollision) {
         newBallPosition.z = -newBallPosition.z + 2 * paddleCollisionPos;
     }
+	detectCollisionPaddle();
+    detectCollisionTable();
     return newBallPosition;
 }
 
 void App::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 	rdt *= 0.1; //slowed it down
-    if(serve) {
-        time += rdt; //start timing only while ball is in air
-        ballVelocity = (ballPos - previousBallPos) / rdt;
-    }
+    time += rdt; //start timing only while ball is in air
+    ballVelocity = (ballPos - previousBallPos) / rdt;
 }
 
 void App::detectCollisionTable() {
-    if(ballPos.y <= BALL_RADIUS) {
-        tableCollision = !tableCollision;
-        if(ballPos.y >= -BALL_RADIUS) { //ball is on the table
-        	initBallVelocity.y *= RESTITUTION; //reduce velocity due to bounciness friction
-        	initBallVelocity.z *= TABLE_FRICTION; //reduce velocity due to table friction
-        }
+    if(ballPos.y <= 0) {
+		time = 0;
+		y_pos = ballPos.y;
+		z_pos = ballPos.z;
+        //tableCollision = true;
+		//tableCollisionPos = ballPos;
+		// tableCollisionPos.y += 1;
+        //if(ballPos.y >= -BALL_RADIUS) { //ball is on the table
+        //	initBallVelocity.y *= RESTITUTION; //reduce velocity due to bounciness friction
+        //	initBallVelocity.z *= TABLE_FRICTION; //reduce velocity due to table friction
+        //}
     }
+
 }
 
 void App::detectCollisionPaddle() {
@@ -120,31 +130,29 @@ void App::detectCollisionPaddle() {
         ballPos.z > (getPaddlePosition().z - 8) && ballPos.z < (getPaddlePosition().z + 8) ) {
         paddleCollision = !paddleCollision;
         paddleCollisionPos = ballPos.z;
-        initBallVelocity.z *= PADDLE_FRICTION; //reduce velocity due to friction from paddle
+        //initBallVelocity.z *= PADDLE_FRICTION; //reduce velocity due to friction from paddle
         /*Here we might assign some "swing force" to the paddle, to increase velocity each time*/
     }
 }
 
 /*this is called in OnGraphics3D*/
 void App::game(RenderDevice* rd) {
-    if (serve) {
-		Sphere ball( ballPos, BALL_RADIUS);
-		Draw::sphere( ball, rd, Color3(0.4,0.4,0.4));
+	Sphere ball( ballPos, BALL_RADIUS);
+	Draw::sphere( ball, rd, Color3(0.4,0.4,0.4));
         
-        previousBallPos = ballPos; //will maybe need later
-        ballPos = updateBallPos(time);
+    previousBallPos = ballPos; //will maybe need later
+    ballPos = updateBallPos(time);
         
-        if(ballPos.z > 160 || ballPos.y > 360) {
-            resetBall();
-        }
+    if(ballPos.z > 160 || ballPos.y > 360) {
+        //resetBall();
     }
 }
 
 void App::resetBall() {
-	serve = false;
 	time = 0.0;
 	ballPos = Vector3(0,30,-130);
     initBallVelocity = Vector3(0,200,400);
+	resetCollisions();
 }
 
 void App::resetCollisions() {

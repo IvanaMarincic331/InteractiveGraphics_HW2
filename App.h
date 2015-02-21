@@ -71,6 +71,11 @@ protected:
     bool tableCollision;
     bool paddleCollision;
     double paddleCollisionPos;
+	Vector3 tableCollisionPos;
+	double timeCollision;
+
+	double y_pos;
+	double z_pos;
     
 };
 
