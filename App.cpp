@@ -13,10 +13,9 @@ G3D_START_AT_MAIN();
 const double App::GRAVITY = 981;
 const double App::BALL_RADIUS = 2.0;
 const double App::PADDLE_RADIUS = 8.0;
-const double App::TABLE_FRICTION = 0.45; //https://prezi.com/lycm4jivbrc7/friction
-const double App::PADDLE_FRICTION = 0.6; //https://prezi.com/lycm4jivbrc7/friction
-const double App::RESTITUTION = 0.9; //www.ijee.ie/articles/Vol19-4/IJEE1433.pdf
-const double App::AIR_DRAG = 1; //en.wikipedia.org/wiki/Drag_coefficient
+const double App::PADDLE_FRICTION = 0.75;
+const double App::RESTITUTION = 0.9;
+const double App::AIR_DRAG = 1;
 
 int main(int argc, const char* argv[]) {
 	(void)argc; (void)argv;
@@ -74,13 +73,13 @@ void App::onUserInput(UserInput *uinput) {
 	float xneg1to1 = mouseXY[0] / renderDevice->width() * 2.0 - 1.0;
 	float y0to1 = mouseXY[1] / renderDevice->height();
 	Matrix3 rotZ = Matrix3::fromAxisAngle(Vector3(0,0,1), aSin(-xneg1to1));    
-	Vector3 lastPaddlePos = paddleFrame.translation;
+	lastPaddlePos = paddleFrame.translation;
 	paddleFrame = CoordinateFrame(rotZ, Vector3(xneg1to1 * 100.0, 20.0, G3D::max(y0to1 * 137.0 + 20.0, 0.0)));
-	newPos = paddleFrame.translation;
+	newPaddlePos = paddleFrame.translation;
 
 	// This is a weighted average.  Update the velocity to be 10% the velocity calculated 
 	// at the previous frame and 90% the velocity calculated at this frame.
-	paddleVel = 0.1*paddleVel + 0.9*(newPos - lastPaddlePos);
+	paddleVel = 0.1*paddleVel + 0.9*(newPaddlePos - lastPaddlePos);
 
 
 	// This returns true if the SPACEBAR was pressed
@@ -105,58 +104,44 @@ void App::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 	GApp::onSimulation(rdt, sdt, idt);
 	rdt *= 0.1; //slowed it down
     time += rdt; //start timing only while ball is in air
-    //ballVelocity = (ballPos - previousBallPos) / rdt;
+    ballVelocity = (ballPos - lastBallPos) / rdt;
 }
 
 void App::detectCollisionTable() {
 	if (ballPos.y <= BALL_RADIUS*2) {
-		//Sleep(1000);
 		time = 0;
 		x_pos = ballPos.x;
 		y_pos = BALL_RADIUS * 3;
 		z_pos = ballPos.z;
-		//initBallVelocity.y *= 1.5;
-		//table_col = Color3(0.3, 0, 0.3);
-        //tableCollision = true;
-		//tableCollisionPos = ballPos;
-		// tableCollisionPos.y += 1;
-        //if(ballPos.y >= -BALL_RADIUS) { //ball is on the table
-        //	initBallVelocity.y *= RESTITUTION; //reduce velocity due to bounciness friction
-        //	initBallVelocity.z *= TABLE_FRICTION; //reduce velocity due to table friction
-        //}
+		initBallVelocity.y *= RESTITUTION;
 	}
 }
 
 void App::detectCollisionPaddle() {
-	Vector3 paddlePos = getPaddlePosition();
-	//Vector3 paddlePos = newPos;
-	//if ( paddlePos.z < 100) {
-	//	table_col = Color3(0.3, 0, 0.3);
-	//} else {
-	//	table_col = Color3(0, 0.3, 0.1);
-	//}
+	double ball_prev [2] = {lastBallPos.x - BALL_RADIUS, lastBallPos.z - BALL_RADIUS};
+	double ball_next [2] = {ballPos.x + BALL_RADIUS, ballPos.z + 2*BALL_RADIUS};
+	double paddle_prev [2] = {lastPaddlePos.x - 1.5*PADDLE_RADIUS, lastPaddlePos.z - 5*0.5};
+	double paddle_next [2] = {newPaddlePos.x + 1.5*PADDLE_RADIUS, newPaddlePos.z + 5*0.5};
 	
-	if( (ballPos.x > (paddlePos.x - PADDLE_RADIUS)) && 
-		(ballPos.x < (paddlePos.x + PADDLE_RADIUS)) &&
-		(ballPos.z > (paddlePos.z - BALL_RADIUS - 0.5)) && 
-		(ballPos.z < (paddlePos.z + BALL_RADIUS - 0.5)) ) {
-        //paddleCollision = !paddleCollision;
-        //paddleCollisionPos = ballPos.z;
-		//table_col = Color3(0.3, 0, 0.3);
-		initBallVelocity.z *= -1;
-        //initBallVelocity.z *= PADDLE_FRICTION; //reduce velocity due to friction from paddle
-        /*Here we might assign some "swing force" to the paddle, to increase velocity each time*/
-    }
+	if ( ball_prev[1] < ball_next[1] ) { 
+		if ( ball_next[0] >= paddle_prev[0] && ball_next[0] <= paddle_next[0] &&
+			 ball_next[1] >= paddle_prev[1] && ball_next[1] <= paddle_next[1] ) {
+					time = 0;
+					x_pos = ballPos.x;
+					y_pos = ballPos.y;
+					z_pos = ballPos.z;
+					initBallVelocity.x = getPaddleVelocity().x*20;
+					initBallVelocity.z *= -1;
+		}
+	}
 }
 
 /*this is called in OnGraphics3D*/
 void App::game(RenderDevice* rd) {
+	lastBallPos = ballPos;
 	ballPos = updateBallPos(time);
 	Sphere ball( ballPos, BALL_RADIUS);
 	Draw::sphere( ball, rd, Color3(0.4,0.4,0.4));
-        
-    previousBallPos = ballPos; //will maybe need later
-    
 }
 
 void App::resetBall() {
@@ -176,7 +161,6 @@ void App::resetCollisions() {
 }
 
 void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D) {
-	cout << "hello" << endl;
 	rd->clear();
 
 	Box wall( Vector3(-900, 0, -500), Vector3(900, 300, -500) );
@@ -225,9 +209,40 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D)
 	LineSegment bottom_right = LineSegment::fromTwoPoints(Point3(76.25, 0, 0), Point3(91.5, 0, 0));
 	Draw::lineSegment(bottom_right, rd, Color3(1, 1, 1));
 
+	/*Sphere lastPos(lastBallPos, 2.0);
+	Draw::sphere(lastPos, rd, Color3::orange());*/
+
+	/*Sphere lastPos(arrow, 4.0);
+	Draw::sphere(lastPos, rd, Color3::orange());
+
+	Draw::cylinder(	paddlePosCylinder, rd, Color3(0.3,0.4,0.7), Color4::clear());*/
+
+	//Vector3 base = getPaddlePosition();
+	//for (double x = base.x - BALL_RADIUS; x <= base.x
+
+	for ( int i = 1; i < 20; i++ ) {
+		Vector3 paddleShadowVector1 = getPaddlePosition();
+		paddleShadowVector1.y = i/20 + 1;
+		Vector3 paddleShadowVector2 = getPaddlePosition();
+		paddleShadowVector2.y = i/20 + 1.1;
+		Cylinder paddleShadow( paddleShadowVector1, paddleShadowVector2, PADDLE_RADIUS*((20-i)/20.0) );
+		float color = 0.1 / (i+1);
+		Draw::cylinder(paddleShadow, rd, Color4(color, color, color, 0.05), Color4::clear());
+	}
+	
+	Vector3 paddleShadowVector1 = getPaddlePosition();
+	paddleShadowVector1.y = 1;
+	Vector3 paddleShadowVector2 = getPaddlePosition();
+	paddleShadowVector2.y = 1.1;
+	Cylinder paddleShadow( paddleShadowVector1, paddleShadowVector2, PADDLE_RADIUS );
+	Draw::cylinder(paddleShadow, rd, Color4(0.2, 0.2, 0.2, 0.2), Color4::clear());
+
 	if (serve) {
 		game(rd);
 	}
+/*
+	Sphere pos(ballPos, 2.0);
+	Draw::sphere(pos, rd, Color3::blue());*/
 
     /*
     if ( serve == true ) {

@@ -57,7 +57,7 @@ protected:
     //do we need a total travel time? Say, if the paddle misses the ball or once it gets hit back
     
     Vector3 ballPos;
-    Vector3 previousBallPos;
+    Vector3 lastBallPos;
     Vector3 ballVelocity;
     Vector3 initBallVelocity;
     
@@ -79,7 +79,11 @@ protected:
 	double z_pos;
 	Color3 table_col;
 
-	Vector3 newPos;
+	Vector3 newPaddlePos;
+	Vector3 lastPaddlePos;
+
+	Cylinder paddlePosCylinder;
+	Vector3 arrow;
     
 };
 
