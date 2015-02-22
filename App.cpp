@@ -92,7 +92,10 @@ Vector3 App::updateBallPos(double time) {
 	detectCollisionPaddle();
     detectCollisionTable();
     detectCollisionNet();
-    if(newBallPosition.y <=BALL_RADIUS) newBallPosition.y = BALL_RADIUS;
+    if((newBallPosition.y <=BALL_RADIUS) && (ballPos.z >= -137) && (ballPos.z <= 137) &&
+                                             (ballPos.x >= -76.25) && (ballPos.x <= 76.25)) {
+       newBallPosition.y = BALL_RADIUS;
+    }
     if((paddleCollision && !tableCollision && (ballPos.z < -137 || ballPos.x > 76.25 || ballPos.x < -76.25))
        || (!paddleCollision && (ballPos.z > 200 || ballPos.x > 76.25 || ballPos.x < -76.25))) {
         if(message == "") {
