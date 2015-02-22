@@ -34,7 +34,6 @@ protected:
     virtual void detectCollisionPaddle();
     virtual void game(RenderDevice* rd);
     virtual void resetBall();
-    virtual void resetCollisions();
 
     // This CoordinateFrame stores position and rotation data for the paddle.
     CoordinateFrame paddleFrame;

@@ -14,7 +14,7 @@ const double App::GRAVITY = 981;
 const double App::BALL_RADIUS = 2.0;
 const double App::PADDLE_RADIUS = 8.0;
 const double App::PADDLE_FRICTION = 0.75;
-const double App::RESTITUTION = 0.9;
+const double App::RESTITUTION = 0.85;
 const double App::AIR_DRAG = 1;
 
 int main(int argc, const char* argv[]) {
@@ -29,12 +29,10 @@ int main(int argc, const char* argv[]) {
 	return App(settings).run();
 }
 
-
 App::App(const GApp::Settings& settings) : GApp(settings) {
 	renderDevice->setColorClearValue(Color3(0.096863, 0.096863, 0.096863));
 	renderDevice->setSwapBuffersAutomatically(true);
 }
-
 
 void App::onInit() {
 	GApp::onInit();
@@ -49,17 +47,13 @@ void App::onInit() {
 	activeCamera()->setPosition(Vector3(0,100,250));
 	activeCamera()->lookAt(Vector3(0,0,0), Vector3(0,1,0));
 	activeCamera()->setFarPlaneZ(-1000);
-    
-    initBallSpeed = 447.12; //MATH!
-    initBallToTableAngle = toRadians(27.57); //MATH!
-
-    //resetCollisions();
 
 	x_pos = 0;
 	y_pos = 30;
 	z_pos = -130;
 	table_col = Color3(0, 0.3, 0.1);
 	serve = false;
+	paddleCollision = false;
 }
 
 
@@ -89,49 +83,52 @@ void App::onUserInput(UserInput *uinput) {
 }
 
 Vector3 App::updateBallPos(double time) {
-	//if (ballPos.y == 30) {
     Vector3 newBallPosition(initBallVelocity.x*time + x_pos, 
 							initBallVelocity.y*AIR_DRAG*time - GRAVITY*time*time*0.5 + y_pos, 
 							initBallVelocity.z*AIR_DRAG*time + z_pos);
 	detectCollisionPaddle();
     detectCollisionTable();
-	//return newBallPosition;
-	//}
     return newBallPosition;
 }
 
 void App::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 	GApp::onSimulation(rdt, sdt, idt);
-	rdt *= 0.1; //slowed it down
+	rdt *= 0.3; //slowed it down
     time += rdt; //start timing only while ball is in air
     ballVelocity = (ballPos - lastBallPos) / rdt;
 }
 
 void App::detectCollisionTable() {
-	if (ballPos.y <= BALL_RADIUS*2) {
+	if ((ballPos.y <= BALL_RADIUS*2) && 
+		(ballPos.z >= -137) && (ballPos.z <= 137) &&
+		(ballPos.x >= -76.25) && (ballPos.x <= 76.25) ) {
 		time = 0;
 		x_pos = ballPos.x;
-		y_pos = BALL_RADIUS * 3;
+		y_pos = BALL_RADIUS*4;
 		z_pos = ballPos.z;
 		initBallVelocity.y *= RESTITUTION;
 	}
 }
 
 void App::detectCollisionPaddle() {
-	double ball_prev [2] = {lastBallPos.x - BALL_RADIUS, lastBallPos.z - BALL_RADIUS};
-	double ball_next [2] = {ballPos.x + BALL_RADIUS, ballPos.z + 2*BALL_RADIUS};
-	double paddle_prev [2] = {lastPaddlePos.x - 1.5*PADDLE_RADIUS, lastPaddlePos.z - 5*0.5};
-	double paddle_next [2] = {newPaddlePos.x + 1.5*PADDLE_RADIUS, newPaddlePos.z + 5*0.5};
-	
-	if ( ball_prev[1] < ball_next[1] ) { 
-		if ( ball_next[0] >= paddle_prev[0] && ball_next[0] <= paddle_next[0] &&
-			 ball_next[1] >= paddle_prev[1] && ball_next[1] <= paddle_next[1] ) {
+	if (!paddleCollision) {
+		for (int x = ballPos.x - BALL_RADIUS; x <= ballPos.x + BALL_RADIUS; x++) {
+			for (int z = ballPos.z; z <= ballPos.z + BALL_RADIUS*2; z++) {
+				paddlePosCylinder = Cylinder( lastPaddlePos + Vector3(0,0,-0.5),
+											  newPaddlePos + Vector3(0,0,0.5),
+											  PADDLE_RADIUS);
+				paddleCollision = paddlePosCylinder.contains(  Vector3(x, 20, z) );
+				if (paddleCollision) {
 					time = 0;
 					x_pos = ballPos.x;
 					y_pos = ballPos.y;
-					z_pos = ballPos.z;
+					z_pos = ballPos.z - 10;
 					initBallVelocity.x = getPaddleVelocity().x*20;
+					initBallVelocity.y *= 1.1;
 					initBallVelocity.z *= -1;
+					return;
+				}
+			}
 		}
 	}
 }
@@ -141,22 +138,17 @@ void App::game(RenderDevice* rd) {
 	lastBallPos = ballPos;
 	ballPos = updateBallPos(time);
 	Sphere ball( ballPos, BALL_RADIUS);
-	Draw::sphere( ball, rd, Color3(0.4,0.4,0.4));
+	Draw::sphere( ball, rd, Color3(0.922745, 0.922745, 0.922745), Color4::clear());
 }
 
 void App::resetBall() {
 	time = 0.0;
 	ballPos = Vector3(0,30,-130);
     initBallVelocity = Vector3(0,200,400);
-	resetCollisions();
 	serve = true;
 	x_pos = 0;
 	y_pos = 30;
 	z_pos = -130;
-}
-
-void App::resetCollisions() {
-	tableCollision = false;
 	paddleCollision = false;
 }
 
@@ -168,7 +160,7 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D)
 	Box stand( Vector3(-66.25, -4, -117), Vector3(66.25, -60, 117) );
 	Draw::box( wall, rd, Color3(0.317647, 0.317647, 0.317647), Color4::clear());
 	Draw::box( table, rd, table_col, Color4::clear());
-	Draw::box( stand, rd, Color3(0.762745, 0.762745, 0.762745), Color4::clear());
+	Draw::box( stand, rd, Color3(0.562745, 0.562745, 0.562745), Color4::clear());
 
 	LineSegment front_down = LineSegment::fromTwoPoints(Point3(-76.25, -3, 137), Point3(76.25, -3, 137));
 	LineSegment front_up = LineSegment::fromTwoPoints(Point3(-76.25, 0, 137), Point3(76.25, 0, 137));
@@ -209,64 +201,36 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D)
 	LineSegment bottom_right = LineSegment::fromTwoPoints(Point3(76.25, 0, 0), Point3(91.5, 0, 0));
 	Draw::lineSegment(bottom_right, rd, Color3(1, 1, 1));
 
-	/*Sphere lastPos(lastBallPos, 2.0);
-	Draw::sphere(lastPos, rd, Color3::orange());*/
-
-	/*Sphere lastPos(arrow, 4.0);
-	Draw::sphere(lastPos, rd, Color3::orange());
-
-	Draw::cylinder(	paddlePosCylinder, rd, Color3(0.3,0.4,0.7), Color4::clear());*/
-
-	//Vector3 base = getPaddlePosition();
-	//for (double x = base.x - BALL_RADIUS; x <= base.x
-
-	for ( int i = 1; i < 20; i++ ) {
-		Vector3 paddleShadowVector1 = getPaddlePosition();
-		paddleShadowVector1.y = i/20 + 1;
-		Vector3 paddleShadowVector2 = getPaddlePosition();
-		paddleShadowVector2.y = i/20 + 1.1;
-		Cylinder paddleShadow( paddleShadowVector1, paddleShadowVector2, PADDLE_RADIUS*((20-i)/20.0) );
-		float color = 0.1 / (i+1);
-		Draw::cylinder(paddleShadow, rd, Color4(color, color, color, 0.05), Color4::clear());
-	}
-	
-	Vector3 paddleShadowVector1 = getPaddlePosition();
-	paddleShadowVector1.y = 1;
-	Vector3 paddleShadowVector2 = getPaddlePosition();
-	paddleShadowVector2.y = 1.1;
-	Cylinder paddleShadow( paddleShadowVector1, paddleShadowVector2, PADDLE_RADIUS );
-	Draw::cylinder(paddleShadow, rd, Color4(0.2, 0.2, 0.2, 0.2), Color4::clear());
-
 	if (serve) {
 		game(rd);
 	}
-/*
-	Sphere pos(ballPos, 2.0);
-	Draw::sphere(pos, rd, Color3::blue());*/
 
-    /*
-    if ( serve == true ) {
-	//SlowMesh mesh(PrimitiveType::TRIANGLE_FAN);
-	//mesh.setColor(Color3::blue());
-	//mesh.makeVertex(Vector2(400,400));
-	//mesh.makeVertex(Vector2(800,400));
-	//mesh.makeVertex(Vector2(800,800));
-	//mesh.makeVertex(Vector2(400,800));
-	//mesh.makeVertex(Vector2(400,400));
-	//rd->push2D();
-	//mesh.render(rd);
-	//rd->pop2D();
+	
+	if ((getPaddlePosition().z <= 137) &&
+		(getPaddlePosition().x >= -76.25) && (getPaddlePosition().x <= 76.25) ) {
+		for ( int i = 0; i < 20; i++ ) {
+			Vector3 paddleShadowVector1 = getPaddlePosition();
+			paddleShadowVector1.y = i/20 + 1;
+			Vector3 paddleShadowVector2 = getPaddlePosition();
+			paddleShadowVector2.y = i/20 + 1.1;
+			Cylinder paddleShadow( paddleShadowVector1, paddleShadowVector2, PADDLE_RADIUS*((20-i)/20.0) );
+			float color = 0.1 / (i+1);
+			Draw::cylinder(paddleShadow, rd, Color4(color, color, color, 0.03), Color4::clear());
+		}
+	}
 
-
-	if ( serve == true ) {
-		Sphere ball( position, ballRadius );
-		Draw::sphere( ball, rd, Color3( 0.4, 0.4, 0.4 ));
-        detectCollisionPaddle();
-		detectCollisionTable();
-        if( position.z > 160 ) {
-          serve = false;
-        }
-	}*/
+	if ((ballPos.z >= -137) && (ballPos.z <= 137) &&
+		(ballPos.x >= -76.25) && (ballPos.x <= 76.25) && serve) {
+		for ( int i = 0; i < 20; i++ ) {
+			Vector3 ballShadowVector1 = ballPos;
+			ballShadowVector1.y = i/20 + 1;
+			Vector3 ballShadowVector2 = ballPos;
+			ballShadowVector2.y = i/20 + 1.1;
+			Cylinder ballShadow( ballShadowVector1, ballShadowVector2, BALL_RADIUS*((20-i)/20.0) );
+			float color = 0.1 / (i+1);
+			Draw::cylinder(ballShadow, rd, Color4(color, color, color, 0.03), Color4::clear());
+		}
+	}
 
 
 	// Draw the paddle using 2 cylinders
