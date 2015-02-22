@@ -30,7 +30,8 @@ int main(int argc, const char* argv[]) {
 }
 
 App::App(const GApp::Settings& settings) : GApp(settings) {
-	renderDevice->setColorClearValue(Color3(0.096863, 0.096863, 0.096863));
+	//renderDevice->setColorClearValue(Color3(0.096863, 0.096863, 0.096863));
+    renderDevice->setColorClearValue(Color3(1, 1, 1));
 	renderDevice->setSwapBuffersAutomatically(true);
 }
 
@@ -54,6 +55,7 @@ void App::onInit() {
 	table_col = Color3(0, 0.3, 0.1);
 	serve = false;
 	paddleCollision = false;
+    message = "";
 }
 
 
@@ -93,7 +95,7 @@ Vector3 App::updateBallPos(double time) {
 
 void App::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 	GApp::onSimulation(rdt, sdt, idt);
-	rdt *= 0.3; //slowed it down
+	rdt *= 0.5; //slowed it down
     time += rdt; //start timing only while ball is in air
     ballVelocity = (ballPos - lastBallPos) / rdt;
 }
@@ -150,10 +152,22 @@ void App::resetBall() {
 	y_pos = 30;
 	z_pos = -130;
 	paddleCollision = false;
+    
+    
+}
+
+void App:drawMessage(RenderDevice* rd) {
+    rd->push2D();
+    CoordinateFrame cframe(Matrix3::fromAxisAngle(Vector3::unitZ(), toRadians(45)),
+                           Vector3(100, 100, 0));
+    rd->setObjectToWorldMatrix(cframe);
+    debugFont->draw2D(rd,message, Vector2(0, 0), 20);
+    rd->pop2D();
 }
 
 void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D) {
 	rd->clear();
+    
 
 	Box wall( Vector3(-900, 0, -500), Vector3(900, 300, -500) );
 	Box table( Vector3(-76.25, 0, -137), Vector3(76.25, -3, 137) );
@@ -244,6 +258,8 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D)
 
 	// Call to make the GApp show the output of debugDraw
 	drawDebugShapes();
+    drawMessage(rd);
+
 }
 
 

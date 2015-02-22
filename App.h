@@ -34,6 +34,7 @@ protected:
     virtual void detectCollisionPaddle();
     virtual void game(RenderDevice* rd);
     virtual void resetBall();
+    virtual void drawMessage(RenderDevice* rd);
 
     // This CoordinateFrame stores position and rotation data for the paddle.
     CoordinateFrame paddleFrame;
@@ -50,6 +51,10 @@ protected:
     static const double TABLE_FRICTION;
     static const double RESTITUTION;
     static const double PADDLE_FRICTION;
+    
+    int playerScore;
+    int opponentScore;
+    String message;
     
     
     double time;
@@ -69,6 +74,8 @@ protected:
     
     bool tableCollision;
     bool paddleCollision;
+    bool netCollision;
+    
     double paddleCollisionPos;
 	Vector3 tableCollisionPos;
 	double timeCollision;
