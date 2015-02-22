@@ -92,13 +92,19 @@ Vector3 App::updateBallPos(double time) {
 	detectCollisionPaddle();
     detectCollisionTable();
     detectCollisionNet();
+    if(newBallPosition.y <=BALL_RADIUS) newBallPosition.y = BALL_RADIUS;
     if((paddleCollision && !tableCollision && (ballPos.z < -137 || ballPos.x > 76.25 || ballPos.x < -76.25))
-       || (!paddleCollision && (ballPos.z > 137 || ballPos.x > 76.25 || ballPos.x < -76.25))) {
+       || (!paddleCollision && (ballPos.z > 200 || ballPos.x > 76.25 || ballPos.x < -76.25))) {
         if(message == "") {
             message = "Out of bounds - opponent's point";
             messageColor = Color3(1,0,0);
             opponentScore++;
         }
+    }
+    if(netCollision) {
+        message = "Hit the net - opponent's point";
+        messageColor = Color3(1,0,0);
+        opponentScore++;
     }
     return newBallPosition;
 }
@@ -120,7 +126,7 @@ void App::detectCollisionTable() {
 		z_pos = ballPos.z;
 		initBallVelocity.y *= RESTITUTION;
         tableCollision = true;
-        if(paddleCollision && ballPos.z < -0.5 ) {
+        if(paddleCollision && ballPos.z < -0.5 && !netCollision ) {
             if(message == "") {
                 message = "Nice shot - your point!";
                 messageColor = Color3(0,1,0);
@@ -155,7 +161,20 @@ void App::detectCollisionPaddle() {
 }
 
 void App::detectCollisionNet() {
-    netCollision = false;
+    if (ballPos.z < 6 && ballPos.z > -4 &&
+        ballPos.y < 17.25 &&
+        ballPos.x > -76.25 && ballPos.x < 76.25) {
+        netCollision = true;
+        time = 0;
+        x_pos = ballPos.x;
+        y_pos = ballPos.y;
+        z_pos = 3;
+        initBallVelocity.x *= 0;
+        initBallVelocity.y *= 0.7;
+        initBallVelocity.z *= 0;
+    } else {
+        netCollision = false;
+    }
     
 }
 
