@@ -33,20 +33,25 @@ protected:
     virtual void detectCollisionTable();
     virtual void detectCollisionPaddle();
     virtual void detectCollisionNet();
+    
+    bool isWithinTableBounds();
+    bool isWithinNetBounds();
+    
     virtual void game(RenderDevice* rd);
+    virtual Vector3 updateBallPos(double time);
+    
     virtual void resetBall();
     virtual void resetCollisions();
     virtual void resetMessage();
     virtual void resetScores();
+    
     virtual void drawMessage(RenderDevice* rd);
-
+    
     // This CoordinateFrame stores position and rotation data for the paddle.
     CoordinateFrame paddleFrame;
   
     // This vector stores the paddle's current velocity.
     Vector3 paddleVel;
-    
-    virtual Vector3 updateBallPos(double time);
     
     static const double GRAVITY;
     static const double BALL_RADIUS;
@@ -65,9 +70,10 @@ protected:
     //do we need a total travel time? Say, if the paddle misses the ball or once it gets hit back
     
     Vector3 ballPos;
-    Vector3 lastBallPos;
-    Vector3 ballVelocity;
     Vector3 initBallVelocity;
+    double x_pos;
+	double y_pos;
+	double z_pos;
     
     double initBallSpeed;
     double initBallToTableAngle;
@@ -84,16 +90,13 @@ protected:
 	Vector3 tableCollisionPos;
 	double timeCollision;
 
-	double x_pos;
-	double y_pos;
-	double z_pos;
+
 	Color3 table_col;
 
 	Vector3 newPaddlePos;
 	Vector3 lastPaddlePos;
 
 	Cylinder paddlePosCylinder;
-	Vector3 arrow;
     
 };
 

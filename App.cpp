@@ -15,6 +15,7 @@ const double App::GRAVITY = 981;
 const double App::BALL_RADIUS = 2.0;
 const double App::PADDLE_RADIUS = 8.0;
 const double App::PADDLE_FRICTION = 0.75;
+const double App::TABLE_FRICTION = 0.6;
 const double App::RESTITUTION = 0.85;
 
 int main(int argc, const char* argv[]) {
@@ -85,6 +86,30 @@ void App::onUserInput(UserInput *uinput) {
 	}
 }
 
+void App::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
+	GApp::onSimulation(rdt, sdt, idt);
+	rdt *= 0.5; //slowed it down
+    time += rdt; //start timing only while ball is in air
+}
+
+
+/*==============================================================================================================================
+    GAME
+==============================================================================================================================*/
+/*this is called in OnGraphics3D*/
+void App::game(RenderDevice* rd) {
+	ballPos = updateBallPos(time);
+    if(ballPos.y > -60){ //
+        Sphere ball( ballPos, BALL_RADIUS);
+        Draw::sphere( ball, rd, Color3(0.922745, 0.922745, 0.922745), Color4::clear());
+    }
+}
+/*==============================================================================================================================*/
+
+
+/*==============================================================================================================================
+    Update Ball Position
+==============================================================================================================================*/
 Vector3 App::updateBallPos(double time) {
     Vector3 newBallPosition(initBallVelocity.x*time + x_pos, 
 							initBallVelocity.y*time - GRAVITY*time*time*0.5 + y_pos,
@@ -92,8 +117,7 @@ Vector3 App::updateBallPos(double time) {
 	detectCollisionPaddle();
     detectCollisionTable();
     detectCollisionNet();
-    if((newBallPosition.y <=BALL_RADIUS) && (ballPos.z >= -137) && (ballPos.z <= 137) &&
-                                             (ballPos.x >= -76.25) && (ballPos.x <= 76.25)) {
+    if((newBallPosition.y <=BALL_RADIUS) && isWithinTableBounds()) {
        newBallPosition.y = BALL_RADIUS;
     }
     if((paddleCollision && !tableCollision && (ballPos.z < -137 || ballPos.x > 76.25 || ballPos.x < -76.25))
@@ -111,23 +135,36 @@ Vector3 App::updateBallPos(double time) {
     }
     return newBallPosition;
 }
+/*==============================================================================================================================*/
 
-void App::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
-	GApp::onSimulation(rdt, sdt, idt);
-	rdt *= 0.5; //slowed it down
-    time += rdt; //start timing only while ball is in air
-    ballVelocity = (ballPos - lastBallPos) / rdt;
+
+/*==============================================================================================================================
+    Check if ball is within the correct bounds
+==============================================================================================================================*/
+bool App::isWithinTableBounds() {
+    return (ballPos.z >= -137) && (ballPos.z <= 137) &&
+    (ballPos.x >= -76.25) && (ballPos.x <= 76.25);
 }
 
+bool App::isWithinNetBounds() {
+    return (ballPos.z < 6 && ballPos.z > -4 &&
+    ballPos.y < 17.25 &&
+    ballPos.x > -76.25 && ballPos.x < 76.25);
+}
+/*==============================================================================================================================*/
+
+/*==============================================================================================================================
+    Detect all collisions with ball
+==============================================================================================================================*/
 void App::detectCollisionTable() {
 	if ((ballPos.y <= BALL_RADIUS*2) && 
-		(ballPos.z >= -137) && (ballPos.z <= 137) &&
-		(ballPos.x >= -76.25) && (ballPos.x <= 76.25) ) {
+		isWithinTableBounds() ) {
 		time = 0;
 		x_pos = ballPos.x;
 		y_pos = BALL_RADIUS*4;
 		z_pos = ballPos.z;
 		initBallVelocity.y *= RESTITUTION;
+        initBallVelocity.z *= TABLE_FRICTION;
         tableCollision = true;
         if(paddleCollision && ballPos.z < -0.5 && !netCollision ) {
             if(message == "") {
@@ -155,7 +192,7 @@ void App::detectCollisionPaddle() {
 					z_pos = ballPos.z - 10;
 					initBallVelocity.x = getPaddleVelocity().x*20;
 					initBallVelocity.y *= 1.1;
-					initBallVelocity.z *= -1;
+					initBallVelocity.z *= -1+0.9*getPaddleVelocity().z; //added this for some realism: if you don't move the paddle forward, the ball doesn't bounce off as much
 					return;
 				}
 			}
@@ -164,9 +201,7 @@ void App::detectCollisionPaddle() {
 }
 
 void App::detectCollisionNet() {
-    if (ballPos.z < 6 && ballPos.z > -4 &&
-        ballPos.y < 17.25 &&
-        ballPos.x > -76.25 && ballPos.x < 76.25) {
+    if (isWithinNetBounds()) {
         netCollision = true;
         time = 0;
         x_pos = ballPos.x;
@@ -178,19 +213,31 @@ void App::detectCollisionNet() {
     } else {
         netCollision = false;
     }
+}
+/*==============================================================================================================================*/
+
+
+/*==============================================================================================================================
+    Draw winning/losing message
+==============================================================================================================================*/
+void App::drawMessage(RenderDevice* rd) {
+    rd->push2D();
+    CoordinateFrame cframe(Vector3(0,50,0));
+    rd->setObjectToWorldMatrix(cframe);
+    debugFont->draw2D(rd,message, Vector2(200, 70), 42, messageColor);
     
+    
+    //string m = to_string(playerScore).c_str();//+" - "+to_string(opponentScore);
+    //cout << m;
+    //debugFont->draw2D(rd,m,Vector2(100, 0), 20, Color3::yellow());*/ //failing at displaying the scores here
+    rd->pop2D();
 }
+/*==============================================================================================================================*/
 
-/*this is called in OnGraphics3D*/
-void App::game(RenderDevice* rd) {
-	lastBallPos = ballPos;
-	ballPos = updateBallPos(time);
-    if(ballPos.y > -60){ //
-        Sphere ball( ballPos, BALL_RADIUS);
-        Draw::sphere( ball, rd, Color3(0.922745, 0.922745, 0.922745), Color4::clear());
-    }
-}
 
+/*==============================================================================================================================
+    Reset everything to inital values
+==============================================================================================================================*/
 void App::resetBall() {
 	time = 0.0;
 	ballPos = Vector3(0,30,-130);
@@ -219,24 +266,16 @@ void App::resetScores() {
     playerScore = 0;
     opponentScore = 0;
 }
+/*==============================================================================================================================*/
 
-void App::drawMessage(RenderDevice* rd) {
-    rd->push2D();
-    CoordinateFrame cframe(Vector3(0,50,0));
-    rd->setObjectToWorldMatrix(cframe);
-    debugFont->draw2D(rd,message, Vector2(200, 70), 42, messageColor);
-    
-    
-    //string m = to_string(playerScore).c_str();//+" - "+to_string(opponentScore);
-    //cout << m;
-    //debugFont->draw2D(rd,m,Vector2(100, 0), 20, Color3::yellow());*/ //failing at displaying the scores here
-    rd->pop2D();
-}
 
+/*==============================================================================================================================
+    OnGraphics3D
+==============================================================================================================================*/
 void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D) {
 	rd->clear();
     
-
+    
 	Box wall( Vector3(-900, 0, -500), Vector3(900, 300, -500) );
 	Box table( Vector3(-76.25, 0, -137), Vector3(76.25, -3, 137) );
 	Box stand( Vector3(-66.25, -4, -117), Vector3(66.25, -60, 117) );
@@ -244,6 +283,7 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D)
 	Draw::box( table, rd, table_col, Color4::clear());
 	Draw::box( stand, rd, Color3(0.562745, 0.562745, 0.562745), Color4::clear());
 
+    /******************************************TABLE******************************************/
 	LineSegment front_down = LineSegment::fromTwoPoints(Point3(-76.25, -3, 137), Point3(76.25, -3, 137));
 	LineSegment front_up = LineSegment::fromTwoPoints(Point3(-76.25, 0, 137), Point3(76.25, 0, 137));
 	LineSegment front_left = LineSegment::fromTwoPoints(Point3(-76.25, -3, 137), Point3(-76.25, 0, 137));
@@ -262,8 +302,9 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D)
 
 	LineSegment back_top = LineSegment::fromTwoPoints(Point3(-76.25, 0, -137), Point3(76.25, 0, -137));
 	Draw::lineSegment(back_top, rd, Color3(1, 1, 1));
-
-    /*Net*/
+    /*************************************************************************************/
+    
+    /*******************************************NET******************************************/
 	for( double x = -91.5; x <= 91.5; x += 2 ) {
 		LineSegment horiz = LineSegment::fromTwoPoints(Point3(x, 0, 0), Point3(x, 15.25, 0));
 		Draw::lineSegment(horiz, rd, Color3(0, 0, 0));
@@ -283,12 +324,9 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D)
 	Draw::lineSegment(bottom_left, rd, Color3(1, 1, 1));
 	LineSegment bottom_right = LineSegment::fromTwoPoints(Point3(76.25, 0, 0), Point3(91.5, 0, 0));
 	Draw::lineSegment(bottom_right, rd, Color3(1, 1, 1));
+    /************************************************************************************/
 
-	if (serve) {
-		game(rd);
-	}
-
-	
+	/*******************************************PADDLE SHADOW******************************************/
 	if ((getPaddlePosition().z <= 137) &&
 		(getPaddlePosition().x >= -76.25) && (getPaddlePosition().x <= 76.25) ) {
 		for ( int i = 0; i < 20; i++ ) {
@@ -301,9 +339,10 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D)
 			Draw::cylinder(paddleShadow, rd, Color4(color, color, color, 0.03), Color4::clear());
 		}
 	}
+    /*************************************************************************************/
 
-	if ((ballPos.z >= -137) && (ballPos.z <= 137) &&
-		(ballPos.x >= -76.25) && (ballPos.x <= 76.25) && serve) {
+    /*******************************************BALL SHADOW******************************************/
+	if (isWithinTableBounds() && serve) {
 		for ( int i = 0; i < 20; i++ ) {
 			Vector3 ballShadowVector1 = ballPos;
 			ballShadowVector1.y = i/20 + 1;
@@ -314,7 +353,8 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D)
 			Draw::cylinder(ballShadow, rd, Color4(color, color, color, 0.03), Color4::clear());
 		}
 	}
-
+    /*************************************************************************************/
+    
 
 	// Draw the paddle using 2 cylinders
 	rd->pushState();
@@ -323,12 +363,19 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D)
 	Cylinder handle(Vector3(0,-7.5,0), Vector3(0,-16,0), 1.5);
 	Draw::cylinder(paddle, rd, Color3(0.5,0,0), Color4::clear());
 	Draw::cylinder(handle, rd, Color3(0.3,0.4,0), Color4::clear());
-	rd->popState();  
+	rd->popState();
+    
+    /**************GAME**************/
+    if (serve) {
+		game(rd);
+	}
+    /******************************/
 
 	// Call to make the GApp show the output of debugDraw
 	drawDebugShapes();
     drawMessage(rd);
 
 }
+/*==============================================================================================================================*/
 
 
