@@ -5,6 +5,7 @@ Athors: Barbara and Ivana
 
 #include "App.h"
 #include <iostream>
+#include <string>
 using namespace std;
 
 // Tells C++ to invoke command-line main() function even on OS X and Win32.
@@ -15,7 +16,6 @@ const double App::BALL_RADIUS = 2.0;
 const double App::PADDLE_RADIUS = 8.0;
 const double App::PADDLE_FRICTION = 0.75;
 const double App::RESTITUTION = 0.85;
-const double App::AIR_DRAG = 1;
 
 int main(int argc, const char* argv[]) {
 	(void)argc; (void)argv;
@@ -30,8 +30,8 @@ int main(int argc, const char* argv[]) {
 }
 
 App::App(const GApp::Settings& settings) : GApp(settings) {
-	//renderDevice->setColorClearValue(Color3(0.096863, 0.096863, 0.096863));
-    renderDevice->setColorClearValue(Color3(1, 1, 1));
+	renderDevice->setColorClearValue(Color3(0.096863, 0.096863, 0.096863));
+    //renderDevice->setColorClearValue(Color3(1, 1, 1));
 	renderDevice->setSwapBuffersAutomatically(true);
 }
 
@@ -54,8 +54,9 @@ void App::onInit() {
 	z_pos = -130;
 	table_col = Color3(0, 0.3, 0.1);
 	serve = false;
-	paddleCollision = false;
-    message = "";
+    resetCollisions();
+    resetMessage();
+    resetScores();
 }
 
 
@@ -86,10 +87,19 @@ void App::onUserInput(UserInput *uinput) {
 
 Vector3 App::updateBallPos(double time) {
     Vector3 newBallPosition(initBallVelocity.x*time + x_pos, 
-							initBallVelocity.y*AIR_DRAG*time - GRAVITY*time*time*0.5 + y_pos, 
-							initBallVelocity.z*AIR_DRAG*time + z_pos);
+							initBallVelocity.y*time - GRAVITY*time*time*0.5 + y_pos,
+							initBallVelocity.z*time + z_pos);
 	detectCollisionPaddle();
     detectCollisionTable();
+    detectCollisionNet();
+    if((paddleCollision && !tableCollision && (ballPos.z < -137 || ballPos.x > 76.25 || ballPos.x < -76.25))
+       || (!paddleCollision && (ballPos.z > 137 || ballPos.x > 76.25 || ballPos.x < -76.25))) {
+        if(message == "") {
+            message = "Out of bounds - opponent's point";
+            messageColor = Color3(1,0,0);
+            opponentScore++;
+        }
+    }
     return newBallPosition;
 }
 
@@ -109,7 +119,16 @@ void App::detectCollisionTable() {
 		y_pos = BALL_RADIUS*4;
 		z_pos = ballPos.z;
 		initBallVelocity.y *= RESTITUTION;
+        tableCollision = true;
+        if(paddleCollision && ballPos.z < -0.5 ) {
+            if(message == "") {
+                message = "Nice shot - your point!";
+                messageColor = Color3(0,1,0);
+                playerScore++;
+            }
+        }
 	}
+    else tableCollision = false;
 }
 
 void App::detectCollisionPaddle() {
@@ -135,12 +154,19 @@ void App::detectCollisionPaddle() {
 	}
 }
 
+void App::detectCollisionNet() {
+    netCollision = false;
+    
+}
+
 /*this is called in OnGraphics3D*/
 void App::game(RenderDevice* rd) {
 	lastBallPos = ballPos;
 	ballPos = updateBallPos(time);
-	Sphere ball( ballPos, BALL_RADIUS);
-	Draw::sphere( ball, rd, Color3(0.922745, 0.922745, 0.922745), Color4::clear());
+    if(ballPos.y > -60){ //
+        Sphere ball( ballPos, BALL_RADIUS);
+        Draw::sphere( ball, rd, Color3(0.922745, 0.922745, 0.922745), Color4::clear());
+    }
 }
 
 void App::resetBall() {
@@ -151,17 +177,37 @@ void App::resetBall() {
 	x_pos = 0;
 	y_pos = 30;
 	z_pos = -130;
-	paddleCollision = false;
-    
+    resetCollisions();
+    resetMessage();
     
 }
 
-void App:drawMessage(RenderDevice* rd) {
+void App::resetCollisions() {
+    paddleCollision = false;
+    tableCollision = false;
+    netCollision = false;
+}
+
+void App::resetMessage() {
+    message = "";
+    messageColor = Color3(0,0,0);
+}
+
+void App::resetScores() {
+    playerScore = 0;
+    opponentScore = 0;
+}
+
+void App::drawMessage(RenderDevice* rd) {
     rd->push2D();
-    CoordinateFrame cframe(Matrix3::fromAxisAngle(Vector3::unitZ(), toRadians(45)),
-                           Vector3(100, 100, 0));
+    CoordinateFrame cframe(Vector3(0,50,0));
     rd->setObjectToWorldMatrix(cframe);
-    debugFont->draw2D(rd,message, Vector2(0, 0), 20);
+    debugFont->draw2D(rd,message, Vector2(200, 70), 42, messageColor);
+    
+    
+    //string m = to_string(playerScore).c_str();//+" - "+to_string(opponentScore);
+    //cout << m;
+    //debugFont->draw2D(rd,m,Vector2(100, 0), 20, Color3::yellow());*/ //failing at displaying the scores here
     rd->pop2D();
 }
 
@@ -195,6 +241,7 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D)
 	LineSegment back_top = LineSegment::fromTwoPoints(Point3(-76.25, 0, -137), Point3(76.25, 0, -137));
 	Draw::lineSegment(back_top, rd, Color3(1, 1, 1));
 
+    /*Net*/
 	for( double x = -91.5; x <= 91.5; x += 2 ) {
 		LineSegment horiz = LineSegment::fromTwoPoints(Point3(x, 0, 0), Point3(x, 15.25, 0));
 		Draw::lineSegment(horiz, rd, Color3(0, 0, 0));

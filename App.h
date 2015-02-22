@@ -32,8 +32,12 @@ protected:
     // Functions for collision detection.
     virtual void detectCollisionTable();
     virtual void detectCollisionPaddle();
+    virtual void detectCollisionNet();
     virtual void game(RenderDevice* rd);
     virtual void resetBall();
+    virtual void resetCollisions();
+    virtual void resetMessage();
+    virtual void resetScores();
     virtual void drawMessage(RenderDevice* rd);
 
     // This CoordinateFrame stores position and rotation data for the paddle.
@@ -47,7 +51,6 @@ protected:
     static const double GRAVITY;
     static const double BALL_RADIUS;
     static const double PADDLE_RADIUS;
-    static const double AIR_DRAG;
     static const double TABLE_FRICTION;
     static const double RESTITUTION;
     static const double PADDLE_FRICTION;
@@ -55,6 +58,7 @@ protected:
     int playerScore;
     int opponentScore;
     String message;
+    Color3 messageColor;
     
     
     double time;
