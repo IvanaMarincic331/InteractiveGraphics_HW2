@@ -108,15 +108,18 @@ void App::game(RenderDevice* rd) {
     Update Ball Position
 ==============================================================================================================================*/
 Vector3 App::updateBallPos(double time) {
+    
+    
 	// calculate new ball position based on projectile motion formula
     Vector3 newBallPosition(initBallVelocity.x*time + x_pos, 
 							initBallVelocity.y*time - GRAVITY*time*time*0.5 + y_pos,
 							initBallVelocity.z*time + z_pos);
-	// detect collisions
-	detectCollisionNet();
+    ballPos = newBallPosition;
+    // detect collisions
+    detectCollisionNet();
 	detectCollisionTable();
 	detectCollisionPaddle();
-
+    
 	// make sure that the ball does not penetrate the table
 	if((newBallPosition.y <=BALL_RADIUS) && isWithinTableBounds()) {
        newBallPosition.y = BALL_RADIUS;
@@ -246,11 +249,12 @@ void App::detectCollisionNet() {
 		}
 
 		initBallVelocity.z *= 0.85; // remove z-velocity
-
-		if (lastBallPos.z > ballPos.z) {
-			time = 0;
-			z_pos = ballPos.z;
-			initBallVelocity = Vector3( 0, 0, 0);
+        
+        if (lastBallPos.z > ballPos.z && !isWithinNetBounds()) {
+            time = 0;
+            z_pos = ballPos.z;
+            initBallVelocity.z = 0;
+            initBallVelocity.y *=0.5; //for extra small jump at the end
 		}
     }
 }
@@ -269,8 +273,30 @@ void App::drawMessage(RenderDevice* rd) {
     rd->setObjectToWorldMatrix(cframe);
     debugFont->draw2D(rd,message, Vector2(200, 70), 42, messageColor); // draw message
     
-    const G3D::String score = string(to_string(playerScore) + (" - ") + to_string(opponentScore)).c_str();
-    debugFont->draw2D( rd, score, Vector2(80, 0), 20, Color3::yellow());
+    const G3D::String playerScoreDisplay = string(to_string(playerScore)).c_str();
+    const G3D::String opponentScoreDisplay = string(to_string(opponentScore)).c_str();
+    String dash = "-";
+    
+    int dashSpace = 110;
+    int opponentSpace = 140;
+    
+    if (playerScore > 9) {
+        dashSpace = 120;
+        opponentSpace = 150;
+    }
+    
+    Color3 playerColor;
+    if(messageColor == Color3(0,1,0)) playerColor = messageColor;
+    else playerColor = Color3::yellow();
+    
+    Color3 opponentColor;
+    if(messageColor == Color3(1,0,0)) opponentColor = messageColor;
+    else opponentColor = Color3::yellow();
+    
+    debugFont->draw2D( rd, playerScoreDisplay, Vector2(80, 0), 20, playerColor);
+    debugFont->draw2D( rd, dash, Vector2(dashSpace, 0), 20, Color3::yellow());
+    debugFont->draw2D( rd, opponentScoreDisplay, Vector2(opponentSpace, 0), 20, opponentColor);
+    
     rd->pop2D();
 }
 /*==============================================================================================================================*/
