@@ -78,6 +78,7 @@ void App::onUserInput(UserInput *uinput) {
 	// This returns true if the SPACEBAR was pressed
 	if (uinput->keyPressed(GKey(' '))) {
 		resetBall();
+		netFlag = true;
 	}
 }
 
@@ -93,6 +94,7 @@ void App::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 ==============================================================================================================================*/
 /*this is called in OnGraphics3D*/
 void App::game(RenderDevice* rd) {
+	lastBallPos = ballPos;
 	ballPos = updateBallPos(time); // update ball position
     if ( ballPos.y > -60 ) { // draw ball only if it is above ground level
         Sphere ball( ballPos, BALL_RADIUS);
@@ -112,11 +114,11 @@ Vector3 App::updateBallPos(double time) {
 							initBallVelocity.z*time + z_pos);
 	// detect collisions
 	detectCollisionNet();
+	detectCollisionTable();
 	detectCollisionPaddle();
-    detectCollisionTable();
 
 	// make sure that the ball does not penetrate the table
-    if((newBallPosition.y <=BALL_RADIUS) && isWithinTableBounds()) {
+	if((newBallPosition.y <=BALL_RADIUS) && isWithinTableBounds()) {
        newBallPosition.y = BALL_RADIUS;
     }
 
@@ -134,7 +136,6 @@ Vector3 App::updateBallPos(double time) {
     if(netCollision) {
         message = "Hit the net - opponent's point"; // show losing message
         messageColor = Color3(1,0,0);
-        opponentScore++; // update opponent's score
     }
     return newBallPosition;
 }
@@ -150,7 +151,7 @@ bool App::isWithinTableBounds() {
 }
 
 bool App::isWithinNetBounds() {
-    return (ballPos.z < 6 && ballPos.z > -6 &&
+    return (ballPos.z < 6 && ballPos.z > -8 &&
     ballPos.y < 16.25 &&
     ballPos.x > -76.25 && ballPos.x < 76.25);
 }
@@ -161,19 +162,23 @@ bool App::isWithinNetBounds() {
 ==============================================================================================================================*/
 void App::detectCollisionTable() {
 	if ((ballPos.y <= BALL_RADIUS*2) && isWithinTableBounds() ) {
-		time = 0; // reset time
 
 		// reset new launch position
-		x_pos = ballPos.x;
-		y_pos = BALL_RADIUS*4;
-		z_pos = ballPos.z;
+		if (!netCollision) {
+			if (netFlag) {
+				time = 0; // reset time
+				z_pos = ballPos.z;
+				x_pos = ballPos.x;
+				y_pos = BALL_RADIUS*4;
+			}
+			initBallVelocity.y *= RESTITUTION; // slow y-speed due to energy lost during table collision 
+	        initBallVelocity.z *= TABLE_FRICTION; // slow z-speed due to friction when hitting table
+		}
 
-		initBallVelocity.y *= RESTITUTION; // slow y-speed due to energy lost during table collision 
-        initBallVelocity.z *= TABLE_FRICTION; // slow z-speed due to friction when hitting table
         tableCollision = true;
 
 		// check if table collision happens on opponent's side AFTER a paddle collision on user's side
-        if(paddleCollision && ballPos.z < -6 && !netCollision ) {
+        if(paddleCollision && ballPos.z < -10) {
             if(message == "") {
                 message = "Nice shot - your point!"; // show winning message
                 messageColor = Color3(0,1,0);
@@ -207,7 +212,7 @@ void App::detectCollisionPaddle() {
 					// reset new launch position
 					x_pos = ballPos.x;
 					y_pos = ballPos.y;
-					z_pos = ballPos.z - 10;
+					z_pos = ballPos.z - 5;
 
 					// change the ball's x-velocity, so that it "inherits" from the paddle's velocity
 					initBallVelocity.x = getPaddleVelocity().x * 20;
@@ -222,20 +227,31 @@ void App::detectCollisionPaddle() {
 }
 
 void App::detectCollisionNet() {
-    if (isWithinNetBounds()) {
+    if (isWithinNetBounds() || !netFlag) {
         netCollision = true;
-        time = 0; // reset time
 
-		// reset new launch position
-        x_pos = ballPos.x;
-        y_pos = ballPos.y;
-        z_pos = 3;
+		// update score, reset time and invert z-velocity only for the first time that we detect a net collision
+		if (netFlag) {
+			time = 0; // reset time
+			
+			// reset new launch position
+			x_pos = ballPos.x;
+			y_pos = 0;
+			z_pos = 2;
 
-        initBallVelocity.x *= 0; // remove x-velocity
-        initBallVelocity.y *= 0.7; // gradually decrease y-velocity
-        initBallVelocity.z *= 0; // remove z-velocity
-    } else {
-        netCollision = false;
+			opponentScore++; // update opponent's score
+			initBallVelocity.z *= -1;
+			initBallVelocity.x *= 0; // remove x-velocity
+			netFlag = false;
+		}
+
+		initBallVelocity.z *= 0.85; // remove z-velocity
+
+		if (lastBallPos.z > ballPos.z) {
+			time = 0;
+			z_pos = ballPos.z;
+			initBallVelocity = Vector3( 0, 0, 0);
+		}
     }
 }
 /*==============================================================================================================================*/
@@ -253,9 +269,8 @@ void App::drawMessage(RenderDevice* rd) {
     rd->setObjectToWorldMatrix(cframe);
     debugFont->draw2D(rd,message, Vector2(200, 70), 42, messageColor); // draw message
     
-    //string m = to_string(playerScore).c_str();//+" - "+to_string(opponentScore);
-    //cout << m;
-    //debugFont->draw2D(rd,m,Vector2(100, 0), 20, Color3::yellow());*/ //failing at displaying the scores here
+    const G3D::String score = string(to_string(playerScore) + (" - ") + to_string(opponentScore)).c_str();
+    debugFont->draw2D( rd, score, Vector2(80, 0), 20, Color3::yellow());
     rd->pop2D();
 }
 /*==============================================================================================================================*/

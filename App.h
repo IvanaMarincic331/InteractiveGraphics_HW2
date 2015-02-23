@@ -54,6 +54,7 @@ protected:
     
     double time; // game time (slower than real time)
 
+	Vector3 lastBallPos;
 	Vector3 ballPos; // current ball position
     Vector3 initBallVelocity; // intial ball velocity
     double x_pos; // the initial launch x position
@@ -67,6 +68,7 @@ protected:
 	bool tableCollision; // has the ball collided with the table
     bool paddleCollision; // has the ball collided with the table
     bool netCollision; // has the ball collided with the net
+	bool netFlag; // check if the ball has hit the net for the first time
 
 	Vector3 newPaddlePos; // the current paddle position
 	Vector3 lastPaddlePos; // the last paddle position
