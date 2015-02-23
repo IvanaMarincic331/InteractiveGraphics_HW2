@@ -15,7 +15,6 @@ G3D_START_AT_MAIN();
 const double App::GRAVITY = 981;
 const double App::BALL_RADIUS = 2.0;
 const double App::PADDLE_RADIUS = 8.0;
-const double App::PADDLE_FRICTION = 0.75;
 const double App::TABLE_FRICTION = 0.8;
 const double App::RESTITUTION = 0.85;
 
@@ -35,10 +34,13 @@ App::App(const GApp::Settings& settings) : GApp(settings) {
 void App::onInit() {
 	GApp::onInit();
 	// Turn on the developer HUD
-	createDeveloperHUD();
+    /*
+    createDeveloperHUD();
 	debugWindow->setVisible(false);
 	developerWindow->setVisible(false);
+    setVisible(false);
 	developerWindow->cameraControlWindow->setVisible(false);
+    */
 	showRenderingStats = false;
 
 	// Setup the camera with a good initial position and view direction to see the table
@@ -271,7 +273,11 @@ void App::drawMessage(RenderDevice* rd) {
 	// create 2D coordinate frame onto which we display win/lose messages
     CoordinateFrame cframe(Vector3(0,50,0));
     rd->setObjectToWorldMatrix(cframe);
-    debugFont->draw2D(rd,message, Vector2(200, 70), 42, messageColor); // draw message
+    int messageSpace = 200;
+    if(message == "Nice shot - your point!") messageSpace = 290;
+    else if(message == "Out of bounds - opponent's point") messageSpace = 120;
+    
+    debugFont->draw2D(rd,message, Vector2(messageSpace, 70), 42, messageColor); // draw message
     
     const G3D::String playerScoreDisplay = string(to_string(playerScore)).c_str();
     const G3D::String opponentScoreDisplay = string(to_string(opponentScore)).c_str();
