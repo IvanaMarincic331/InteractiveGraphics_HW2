@@ -1,6 +1,7 @@
 /**
-Comp 394 S15 Assignment #2 Ping Pong 3D
-Athors: Barbara and Ivana
+Interactive Graphics
+Spring '15 Assignment #2 Ping Pong 3D
+Authors: Barbara and Ivana
 **/
 
 #include "App.h"
@@ -449,10 +450,10 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D)
 	}
     /******************************/
 
+	drawMessage(rd);
+
 	// Call to make the GApp show the output of debugDraw
 	drawDebugShapes();
-    drawMessage(rd);
-
 }
 /*==============================================================================================================================*/
 

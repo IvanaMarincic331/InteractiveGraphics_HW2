@@ -1,5 +1,6 @@
 /**
-    CSci-4611 Spring '14 Assignment #2 Pong 3D
+Interactive Graphics
+Spring '15 Assignment #2 Ping Pong 3D
 Authors: Barbara and Ivana
 **/
 
