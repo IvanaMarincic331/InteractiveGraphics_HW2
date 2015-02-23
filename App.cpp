@@ -110,14 +110,13 @@ void App::game(RenderDevice* rd) {
     Update Ball Position
 ==============================================================================================================================*/
 Vector3 App::updateBallPos(double time) {
-    
-    
 	// calculate new ball position based on projectile motion formula
     Vector3 newBallPosition(initBallVelocity.x*time + x_pos, 
 							initBallVelocity.y*time - GRAVITY*time*time*0.5 + y_pos,
 							initBallVelocity.z*time + z_pos);
     ballPos = newBallPosition;
-    // detect collisions
+    
+	// detect collisions
     detectCollisionNet();
 	detectCollisionTable();
 	detectCollisionPaddle();
@@ -170,7 +169,7 @@ void App::detectCollisionTable() {
 
 		// reset new launch position
 		if (!netCollision) {
-			if (netFlag) {
+			if (netFlag) { // only run this code if there wasn't been a net collision in the past
 				time = 0; // reset time
 				z_pos = ballPos.z;
 				x_pos = ballPos.x;
@@ -252,10 +251,11 @@ void App::detectCollisionNet() {
 
 		initBallVelocity.z *= 0.85; // remove z-velocity
         
+		// check if the ball is going back towards the net (because initBallVelocity has decreased so much)
         if (lastBallPos.z > ballPos.z && !isWithinNetBounds()) {
             time = 0;
             z_pos = ballPos.z;
-            initBallVelocity.z = 0;
+            initBallVelocity.z = 0; // remove z-velocity
             initBallVelocity.y *=0.5; //for extra small jump at the end
 		}
     }
@@ -267,18 +267,21 @@ void App::detectCollisionNet() {
     Draw winning/losing message
 ==============================================================================================================================*/
 void App::drawMessage(RenderDevice* rd) {
-
     rd->push2D();
 	
 	// create 2D coordinate frame onto which we display win/lose messages
     CoordinateFrame cframe(Vector3(0,50,0));
     rd->setObjectToWorldMatrix(cframe);
+
+	// center messages appropriately
     int messageSpace = 200;
-    if(message == "Nice shot - your point!") messageSpace = 290;
-    else if(message == "Out of bounds - opponent's point") messageSpace = 120;
+    if ( message == "Nice shot - your point!" ) messageSpace = 290;
+    else if ( message == "Out of bounds - opponent's point" ) messageSpace = 120;
     
+	// draw win/lose message
     debugFont->draw2D(rd,message, Vector2(messageSpace, 70), 42, messageColor); // draw message
     
+	// convert scores to strings and display them appropriately
     const G3D::String playerScoreDisplay = string(to_string(playerScore)).c_str();
     const G3D::String opponentScoreDisplay = string(to_string(opponentScore)).c_str();
     String dash = "-";
@@ -291,14 +294,17 @@ void App::drawMessage(RenderDevice* rd) {
         opponentSpace = 150;
     }
     
+	// change player's score color if she has just won
     Color3 playerColor;
     if(messageColor == Color3(0,1,0)) playerColor = messageColor;
     else playerColor = Color3::yellow();
     
+	// change computer's score color if it has just won
     Color3 opponentColor;
     if(messageColor == Color3(1,0,0)) opponentColor = messageColor;
     else opponentColor = Color3::yellow();
     
+	// draw scoreboard
     debugFont->draw2D( rd, playerScoreDisplay, Vector2(80, 0), 20, playerColor);
     debugFont->draw2D( rd, dash, Vector2(dashSpace, 0), 20, Color3::yellow());
     debugFont->draw2D( rd, opponentScoreDisplay, Vector2(opponentSpace, 0), 20, opponentColor);

@@ -54,7 +54,7 @@ protected:
     
     double time; // game time (slower than real time)
 
-	Vector3 lastBallPos;
+	Vector3 lastBallPos; // last ball position
 	Vector3 ballPos; // current ball position
     Vector3 initBallVelocity; // intial ball velocity
     double x_pos; // the initial launch x position
