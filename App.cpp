@@ -224,7 +224,7 @@ void App::detectCollisionPaddle() {
 					initBallVelocity.x = getPaddleVelocity().x * 20;
                     
 					// reverse z-velocity and make it inherit from the paddle's z-velocity multiplied by an arbitrary constant as well
-					initBallVelocity.z *= -1 + 0.5*getPaddleVelocity().z;
+					initBallVelocity.z *= getPaddleNormal().z + 0.5*getPaddleVelocity().z;
 					return;
 				}
 			}
