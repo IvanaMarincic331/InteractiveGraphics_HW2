@@ -97,7 +97,8 @@ void App::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 /*this is called in OnGraphics3D*/
 void App::game(RenderDevice* rd) {
 	lastBallPos = ballPos;
-	ballPos = updateBallPos(time); // update ball position
+	ballPos = updateBallPos(time);
+    //updateBallPos(time); // get next ball position and update ball position
     if ( ballPos.y > -60 ) { // draw ball only if it is above ground level
         Sphere ball( ballPos, BALL_RADIUS);
         Draw::sphere( ball, rd, Color3(0.922745, 0.922745, 0.922745), Color4::clear());
@@ -110,13 +111,12 @@ void App::game(RenderDevice* rd) {
     Update Ball Position
 ==============================================================================================================================*/
 Vector3 App::updateBallPos(double time) {
-    
-    
 	// calculate new ball position based on projectile motion formula
     Vector3 newBallPosition(initBallVelocity.x*time + x_pos, 
 							initBallVelocity.y*time - GRAVITY*time*time*0.5 + y_pos,
 							initBallVelocity.z*time + z_pos);
     ballPos = newBallPosition;
+    
     // detect collisions
     detectCollisionNet();
 	detectCollisionTable();
@@ -127,7 +127,7 @@ Vector3 App::updateBallPos(double time) {
        newBallPosition.y = BALL_RADIUS;
     }
 
-	// check if ball is outside the table's limits
+	// check for out of bounds: a) if hit by paddle, check that it didn't bounce off on the other side and that it's outside of the opponent's side of the table, b) if not hit by paddle, check that the bell went outside of the player's side of the table
     if((paddleCollision && !tableCollision && (ballPos.z < -137 || ballPos.x > 76.25 || ballPos.x < -76.25))
        || (!paddleCollision && (ballPos.z > 200 || ballPos.x > 76.25 || ballPos.x < -76.25))) {
         if(message == "") {
@@ -156,7 +156,7 @@ bool App::isWithinTableBounds() {
 }
 
 bool App::isWithinNetBounds() {
-    return (ballPos.z < 6 && ballPos.z > -8 &&
+    return (ballPos.z < 6.5 && ballPos.z > -1 && //tight z bound
     ballPos.y < 16.25 &&
     ballPos.x > -76.25 && ballPos.x < 76.25);
 }
@@ -219,10 +219,10 @@ void App::detectCollisionPaddle() {
 					y_pos = ballPos.y;
 					z_pos = ballPos.z - 5;
 
-					// change the ball's x-velocity, so that it "inherits" from the paddle's velocity
+					// change the ball's x-velocity, so that it "inherits" from the paddle's velocity multiplied by an arbitrary constant
 					initBallVelocity.x = getPaddleVelocity().x * 20;
-
-					// reverse z-velocity and make it inherit from the paddle's z-velocity as well
+                    
+					// reverse z-velocity and make it inherit from the paddle's z-velocity multiplied by an arbitrary constant as well
 					initBallVelocity.z *= -1 + 0.5*getPaddleVelocity().z;
 					return;
 				}
@@ -256,7 +256,7 @@ void App::detectCollisionNet() {
             time = 0;
             z_pos = ballPos.z;
             initBallVelocity.z = 0;
-            initBallVelocity.y *=0.5; //for extra small jump at the end
+            initBallVelocity.y *=0.5; //for an additional small jump at the end
 		}
     }
 }
@@ -273,12 +273,15 @@ void App::drawMessage(RenderDevice* rd) {
 	// create 2D coordinate frame onto which we display win/lose messages
     CoordinateFrame cframe(Vector3(0,50,0));
     rd->setObjectToWorldMatrix(cframe);
+    
+    // aligning the text properly
     int messageSpace = 200;
     if(message == "Nice shot - your point!") messageSpace = 290;
     else if(message == "Out of bounds - opponent's point") messageSpace = 120;
     
     debugFont->draw2D(rd,message, Vector2(messageSpace, 70), 42, messageColor); // draw message
     
+    //draw the scores
     const G3D::String playerScoreDisplay = string(to_string(playerScore)).c_str();
     const G3D::String opponentScoreDisplay = string(to_string(opponentScore)).c_str();
     String dash = "-";

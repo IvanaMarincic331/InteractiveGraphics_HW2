@@ -50,7 +50,6 @@ protected:
     static const double PADDLE_RADIUS;
     static const double TABLE_FRICTION;
     static const double RESTITUTION;
-    static const double PADDLE_FRICTION;
     
     double time; // game time (slower than real time)
 
