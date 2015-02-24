@@ -1,5 +1,6 @@
 /**
-    CSci-4611 Spring '14 Assignment #2 Pong 3D
+Interactive Graphics
+Spring '15 Assignment #2 Ping Pong 3D
 Authors: Barbara and Ivana
 **/
 
@@ -53,7 +54,7 @@ protected:
     
     double time; // game time (slower than real time)
 
-	Vector3 lastBallPos;
+	Vector3 lastBallPos; // last ball position
 	Vector3 ballPos; // current ball position
     Vector3 initBallVelocity; // intial ball velocity
     double x_pos; // the initial launch x position

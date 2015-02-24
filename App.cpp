@@ -1,6 +1,7 @@
 /**
-Comp 394 S15 Assignment #2 Ping Pong 3D
-Athors: Barbara and Ivana
+Interactive Graphics
+Spring '15 Assignment #2 Ping Pong 3D
+Authors: Barbara and Ivana
 **/
 
 #include "App.h"
@@ -170,7 +171,7 @@ void App::detectCollisionTable() {
 
 		// reset new launch position
 		if (!netCollision) {
-			if (netFlag) {
+			if (netFlag) { // only run this code if there wasn't been a net collision in the past
 				time = 0; // reset time
 				z_pos = ballPos.z;
 				x_pos = ballPos.x;
@@ -252,12 +253,13 @@ void App::detectCollisionNet() {
 
 		initBallVelocity.z *= 0.85; // remove z-velocity
         
+		// check if the ball is going back towards the net (because initBallVelocity has decreased so much)
         if (lastBallPos.z > ballPos.z && !isWithinNetBounds()) {
             time = 0;
             z_pos = ballPos.z;
-            initBallVelocity.z = 0;
-            initBallVelocity.y *=0.5; //for an additional small jump at the end
-		}
+            initBallVelocity.z = 0; // remove z-velocity
+            initBallVelocity.y *=0.5; //for additional small jump at the end
+        }
     }
 }
 /*==============================================================================================================================*/
@@ -267,21 +269,21 @@ void App::detectCollisionNet() {
     Draw winning/losing message
 ==============================================================================================================================*/
 void App::drawMessage(RenderDevice* rd) {
-
     rd->push2D();
 	
 	// create 2D coordinate frame onto which we display win/lose messages
     CoordinateFrame cframe(Vector3(0,50,0));
     rd->setObjectToWorldMatrix(cframe);
     
-    // aligning the text properly
+    // center align the messages properly
     int messageSpace = 200;
-    if(message == "Nice shot - your point!") messageSpace = 290;
-    else if(message == "Out of bounds - opponent's point") messageSpace = 120;
+    if ( message == "Nice shot - your point!" ) messageSpace = 290;
+    else if ( message == "Out of bounds - opponent's point" ) messageSpace = 120;
     
+	// draw win/lose message
     debugFont->draw2D(rd,message, Vector2(messageSpace, 70), 42, messageColor); // draw message
     
-    //draw the scores
+	// convert scores to strings and display them appropriately
     const G3D::String playerScoreDisplay = string(to_string(playerScore)).c_str();
     const G3D::String opponentScoreDisplay = string(to_string(opponentScore)).c_str();
     String dash = "-";
@@ -294,14 +296,17 @@ void App::drawMessage(RenderDevice* rd) {
         opponentSpace = 150;
     }
     
+	// change player's score color if she has just won
     Color3 playerColor;
     if(messageColor == Color3(0,1,0)) playerColor = messageColor;
     else playerColor = Color3::yellow();
     
+	// change computer's score color if it has just won
     Color3 opponentColor;
     if(messageColor == Color3(1,0,0)) opponentColor = messageColor;
     else opponentColor = Color3::yellow();
     
+	// draw scoreboard
     debugFont->draw2D( rd, playerScoreDisplay, Vector2(80, 0), 20, playerColor);
     debugFont->draw2D( rd, dash, Vector2(dashSpace, 0), 20, Color3::yellow());
     debugFont->draw2D( rd, opponentScoreDisplay, Vector2(opponentSpace, 0), 20, opponentColor);
@@ -446,10 +451,10 @@ void App::onGraphics3D(RenderDevice* rd, Array<shared_ptr<Surface> >& surface3D)
 	}
     /******************************/
 
+	drawMessage(rd);
+
 	// Call to make the GApp show the output of debugDraw
 	drawDebugShapes();
-    drawMessage(rd);
-
 }
 /*==============================================================================================================================*/
 
